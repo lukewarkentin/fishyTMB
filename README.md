@@ -3,7 +3,7 @@ Working examples of TMB models for salmon stock assessment
 
 Repository to work on and run TMB models for stock-recruitment relationships. Examples include:
 - Basic Ricker stock-recruit model
--...
+- (other examples to follow)
 
 ## Folders:
 - data_in: Raw data for models 
