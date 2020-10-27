@@ -12,8 +12,12 @@ Repository to work on and run TMB models for stock-recruitment relationships. Ex
 - `load.r`: Load required packages and data
 - `run_TMB.r`: run TMB model and save results
 - `figures.r`: Functions to create figures
-### data_in: Raw data for models 
-### output: Model results
-### figures: Figures created by scripts
-### TMB: contains .cpp TMB model files
+### data_in: 
+Raw data for models 
+### output: 
+Model results
+### figures: 
+Figures created by scripts
+### TMB: 
+Contains .cpp TMB model files
 
