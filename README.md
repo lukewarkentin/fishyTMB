@@ -1,4 +1,4 @@
-# TMBstocks
+# fishyTMB
 Working examples of TMB models for salmon stock assessment
 
 Repository to work on and run TMB models for stock-recruitment relationships. Examples include:
