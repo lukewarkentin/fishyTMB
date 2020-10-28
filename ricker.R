@@ -20,12 +20,9 @@ source("load_data.r")
 plot_SR_by_CU(dat)
 
 # Compile and load TMB files if not done already
-# loadTMB("ricker")
-#compile("TMB/ricker.cpp","-O1 -g",DLLFLAGS="") # extra arguments allow debug with gdbsource()
-#dyn.load(dynlib("TMB/ricker"))
-
-compile("ricker.cpp","-O1 -g",DLLFLAGS="") # extra arguments allow debug with gdbsource()
-dyn.load(dynlib("ricker"))
+compile("TMB/ricker.cpp","-O1 -g",DLLFLAGS="") # extra arguments allow debug with gdbsource()
+dyn.load(dynlib("TMB/ricker"))
+# loadTMB("ricker") # function to compile and load in one step, checks whether already compiled
 
 # TMB input data (must be list)
 data <- list() # create empty list
@@ -41,13 +38,16 @@ param$logA <- rep(1, n_stocks) # intial values of logA for each CU
 param$logB <- as.numeric(log(1/( (dat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
 param$logSigma <- rep(-2, n_stocks)
 
+# Make model function
+obj <- MakeADFun(data, param, DLL="ricker") # This makes R abort and give this error: 
+# TMB has received an error from EIgen. The following conditions was not met:
+# index >=0 && index < size()
+# Please chekc your matrix-vector bounds etc., or run your program through a debugger
+opt <- nlminb(obj$par, obj$fn, obj$gr)
+opt
+sdreport(obj)
+
 # check for out of bounds error with debug function gdbsource()
 gdbsource("ricker.R") # gives: 
 #Error in system(cmd, intern = TRUE, ignore.stdout = FALSE, ignore.stderr = TRUE) : 
 #'gdb' not found
-
-# Make model function
-obj <- MakeADFun(data, param, DLL="ricker")
-opt <- nlminb(obj$par, obj$fn, obj$gr)
-opt
-sdreport(obj)

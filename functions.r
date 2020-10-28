@@ -19,7 +19,7 @@ loadTMB <- function(x) {
   modpath <- paste0("TMB/", x) # model path string
   if(file.exists(paste0(modpath, ".dll"))) { # test if TMB .cpp file is already present
         warning("Already compiled: .dll file already exists") # if file exists, give warning
-      } else { compile(paste0(modpath, ".cpp")) # compile .cpp file of model
+      } else { compile(paste0(modpath, ".cpp"), "-O1 -g",DLLFLAGS="") # compile .cpp file of model, extra arguments allow debug with gdbsource()
   } # end of else statement 
   dyn.load(dynlib(modpath)) # load .dll file of model
 }
