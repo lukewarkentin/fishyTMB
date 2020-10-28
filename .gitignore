@@ -38,3 +38,7 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# TMB model files
+*.dll # created when .cpp TMB models compiled
+*.o # created when .cpp TMB models compiled

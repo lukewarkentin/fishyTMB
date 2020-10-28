@@ -14,15 +14,14 @@ get_SR_dat <- function(x) {
       } # end of else statement
 }
 
-# Function to test whether TMB files are already compiled, if not, don't recompile
-
+# Function to test whether TMB files are already compiled, if not, don't recompile. Then load model
 loadTMB <- function(x) {
   modpath <- paste0("TMB/", x) # model path string
   if(file.exists(paste0(modpath, ".dll"))) { # test if TMB .cpp file is already present
         warning("Already compiled: .dll file already exists") # if file exists, give warning
       } else { compile(paste0(modpath, ".cpp")) # compile .cpp file of model
-                dyn.load(dynlib(modpath)) # load .dll file of model
   } # end of else statement 
+  dyn.load(dynlib(modpath)) # load .dll file of model
 }
 
 

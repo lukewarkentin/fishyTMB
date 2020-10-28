@@ -20,4 +20,8 @@ Model results
 Figures created by scripts
 ### TMB: 
 Contains .cpp TMB model files
+- `ricker.cpp`: simple Ricker model 
+- `Aggregate_LRPs.cpp`: Combined Ricker and LRP model (Brooke Davis)
+- `Aggregate_LRPs_Hier.cpp`: Combined Ricker and LRP model (Brooke Davis)
+
 
