@@ -3,7 +3,7 @@
 # -----------------------------------
 
 # Function to test if data is already present; if false, write data to csv
-save_dat <- function(x) {
+get_SR_dat <- function(x) {
   if(file.exists(paste0("data_in/", x))) {  # test if data is already present in folder
           warning("File already exists") # if file exists, give warning message
          # if file does not exist, download .csv file from SalmonLRP_RetroEval github repository
@@ -14,4 +14,16 @@ save_dat <- function(x) {
       } # end of else statement
 }
 
-# 
+# Function to test whether TMB files are already compiled, if not, don't recompile
+
+loadTMB <- function(x) {
+  modpath <- paste0("TMB/", x) # model path string
+  if(file.exists(paste0(modpath, ".dll"))) { # test if TMB .cpp file is already present
+        warning("Already compiled: .dll file already exists") # if file exists, give warning
+      } else { compile(paste0(modpath, ".cpp")) # compile .cpp file of model
+                dyn.load(dynlib(modpath)) # load .dll file of model
+  } # end of else statement 
+}
+
+
+
