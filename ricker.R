@@ -20,32 +20,33 @@ source("load_data.r")
 plot_SR_by_CU(dat)
 
 # Compile and load TMB files if not done already
-compile("TMB/ricker.cpp","-O1 -g",DLLFLAGS="") # extra arguments allow debug with gdbsource()
-dyn.load(dynlib("TMB/ricker"))
-# loadTMB("ricker") # function to compile and load in one step, checks whether already compiled
 
-# TMB input data (must be list)
-data <- list() # create empty list
-data$S <- dat$spawners # spawners 
-data$logR <- log(dat$recruits) # natural log of recruits
-data$stock <- as.integer(as.factor(dat$CU)) # numeric vector of CU (conservation unit)
-n_stocks <- length(unique(dat$CU)) # number of CUs
-data$n_stocks <- n_stocks
+compile("TMB/ricker_basic.cpp","-O1 -g",DLLFLAGS="") # extra arguments allow debug with gdbsource()
+dyn.load(dynlib("TMB/ricker_basic"))
 
-# Set-up parameter list for TMB function calls
-param <- list()
-param$logA <- rep(1, n_stocks) # intial values of logA for each CU
-param$logB <- as.numeric(log(1/( (dat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
-param$logSigma <- rep(-2, n_stocks)
+compile("TMB/ricker_multi_CUs.cpp") # extra arguments allow debug with gdbsource()
+dyn.load(dynlib("TMB/ricker_multi_CUs"))
+
+# loadTMB("ricker_basic") # function to compile and load in one step, checks whether already compiled
+
+# Prepare model input data
+#model_input <- make_model_input(model_name = "ricker_basic", SRdat = dat)
+model_input <- make_model_input(model_name = "ricker_multi_CUs", SRdat=dat)
 
 # Make model function
-obj <- MakeADFun(data, param, DLL="ricker") # This makes R abort and give this error: 
-# TMB has received an error from EIgen. The following conditions was not met:
-# index >=0 && index < size()
-# Please chekc your matrix-vector bounds etc., or run your program through a debugger
+#obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_basic")
+obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_multi_CUs")
+
+# Optimize
 opt <- nlminb(obj$par, obj$fn, obj$gr)
-opt
 sdreport(obj)
+res <- sdreport(obj)
+res$value
+# plot results to check
+plot(data$logR ~ data$S)
+# plot formula:
+# logR = logA + logS - BS
+curve(res$value["logA"] + log(x) - res$value["B"] * x , add=TRUE)
 
 # check for out of bounds error with debug function gdbsource()
 gdbsource("ricker.R") # gives: 
