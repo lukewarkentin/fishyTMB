@@ -5,7 +5,7 @@ Repository to try TMB models for stock-recruitment relationships. Examples inclu
 
 ## Files:
 ### main directory: 
-- `ricker.r`: Source functions, load data, run ricker TMB model, save output tables and figures
+- `master.r`: Source functions, load data, run ricker TMB model, save output tables and figures
 - `functions.r`: helper functions
 - `load_data.r`: Download required data
 - `figures.r`: Functions to create figures
@@ -17,7 +17,8 @@ Model results
 Figures created by scripts
 ### TMB: 
 Contains .cpp TMB model files
-- `ricker.cpp`: simple Ricker model 
+- `ricker_basic.cpp`: simple Ricker model with one population
+- `ricker_multi_CUs.cpp`: Non-hierarchical Ricker with multiple populations
 - `Aggregate_LRPs.cpp`: Combined Ricker and LRP model (Brooke Davis)
 - `Aggregate_LRPs_Hier.cpp`: Combined Ricker and LRP model (Brooke Davis)
 
