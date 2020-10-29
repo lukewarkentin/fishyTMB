@@ -5,7 +5,8 @@ Type objective_function<Type>::operator() (){
   DATA_VECTOR(S);
   DATA_VECTOR(logR);
   DATA_IVECTOR(stock); // a vector of integers must be called in as DATA_IVECTOR()
-
+  DATA_INTEGER(n_stocks); // 
+  
   // parameters:
   PARAMETER_VECTOR(logA); // log alphas for each CU
   PARAMETER_VECTOR(logB); // log betas for each CU
@@ -13,10 +14,10 @@ Type objective_function<Type>::operator() (){
   
   // procedures (transformed parameters):
   int n = S.size(); // get number data points to loop over (length of S vector)
-  
   vector<Type> logR_Pred(n); // declare predicted logR to use in likelihood function
-  vector<Type> sigma = exp(logSigma); // get CU-specific sigmas
-  vector<Type> B = exp(logB); // get CU-specific betas
+  vector<Type> sigma = exp(logSigma); 
+  vector<Type> B = exp(logB); 
+  
   
   Type ans = 0.0; // initialize negative log likelihood
   

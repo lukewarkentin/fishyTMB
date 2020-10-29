@@ -5,7 +5,7 @@ Repository to try TMB models for stock-recruitment relationships. Examples inclu
 
 ## Files:
 ### main directory: 
-- `master.r`: Source functions, load data, run ricker TMB model, save output tables and figures
+- `master.r`: Source functions, load data, run ricker TMB models, save output and figures
 - `functions.r`: helper functions
 - `load_data.r`: Download required data
 - `figures.r`: Functions to create figures

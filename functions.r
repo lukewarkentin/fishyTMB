@@ -54,7 +54,7 @@ make_model_input <- function(model_name, SRdat) {
     # data
     data_in$S <- SRdat$spawners # spawners 
     data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
-    data_in$stock <- as.integer(as.factor(SRdat$CU)) # numeric vector of CU (conservation unit)
+    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
     n_stocks <- length(unique(SRdat$CU)) # number of CUs
     #data_in$n_stocks <- n_stocks # number of stocks
     # parameters

@@ -20,7 +20,7 @@ Type objective_function<Type>::operator() (){
   Type ans = 0.0; // initialize negative log likelihood
   
   // Ricker likelihood
-  for(int i=0; i<n; ++i){ // for loop from 0 to (n-1)
+  for(int i=0; i<n; i++){ // for loop from 0 to (n-1)
     logR_Pred(i) = logA + log(S(i)) - exp(logB) * S(i);
     ans += -dnorm(logR_Pred(i), logR(i),  sigma, true); // calculate negative log-likelihood, true is for log = TRUE
   }
