@@ -4,7 +4,7 @@
 #
 #   get_SR_dat : Test if data is already present; if false, write data to csv
 #   loadTMB : Test whether TMB files are already compiled, if not, don't recompile. Then load model
-#   make_model_input: Prepare data and parameter inputs for a particular TMB model
+#   make_model_input: Prepare data and parameter inputs for a particular TMB model and data
 #
 # -----------------------------------
 
@@ -56,7 +56,7 @@ make_model_input <- function(model_name, SRdat) {
     data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
     data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
     n_stocks <- length(unique(SRdat$CU)) # number of CUs
-    #data_in$n_stocks <- n_stocks # number of stocks
+    data_in$n_stocks <- n_stocks # number of stocks
     # parameters
     param_in$logA <- rep(1, n_stocks) # intial values of logA for each CU
     param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
