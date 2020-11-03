@@ -47,7 +47,6 @@ make_model_input <- function(model_name, SRdat) {
     param_in$logSigma <- -2
   }
   # Set spawner and log(recruit) data inputs
-
     
   # If model multi-CU (not hierarchical)
   if(model_name == "ricker_multi_CUs") {
@@ -76,6 +75,26 @@ make_model_input <- function(model_name, SRdat) {
     param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
     param_in$logSigma <- rep(-2, n_stocks)
     param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
+  }
+  
+  # If model is with SMSY and Sgen outputs
+  if(model_name=="Aggregate_LRPs") {
+    # data
+    data_in$S <- SRdat$spawners # spawners 
+    data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
+    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
+    n_stocks <- length(unique(SRdat$CU)) # number of CUs
+    data_in$n_stocks <- n_stocks # number of stocks
+    data_in$yr <- SRdat$year
+    data_in$Mod_Yr_0 <- min(SRdat$year)
+    data_in$Mod_Yr_n <- max(SRdat$year)
+    # parameters
+    param_in$logA <- rep(1, n_stocks) # intial values of logA for each CU
+    param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
+    param_in$logSigma <- rep(-2, n_stocks)
+    param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
+    param_in$B_0 <- 2 # from older code
+    param_in$B_1 <- 0.1 # from older code
   }
   
   model_in <- list()

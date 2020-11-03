@@ -40,5 +40,10 @@ vignettes/*.pdf
 .Renviron
 
 # TMB model files
-*.dll # created when .cpp TMB models compiled
-*.o # created when .cpp TMB models compiled
+TMB/*.dll # created when .cpp TMB models compiled
+TMB/*.o # created when .cpp TMB models compiled
+
+#Word documents
+*.docx
+
+ExploratoryCode.R # old code from a different repository, Brooke Davis

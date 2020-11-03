@@ -1,36 +1,38 @@
 #include <TMB.hpp>
 template<class Type>
-Type objective_function<Type>::operator() ()
-{
+Type objective_function<Type>::operator() () {
+  // data 
   DATA_VECTOR(S);
   DATA_VECTOR(logR);
-  DATA_IVECTOR(stk);
+  DATA_IVECTOR(stock);
   DATA_IVECTOR(yr);
-  DATA_INTEGER(N_Stks);
+  DATA_INTEGER(n_stocks);
   DATA_INTEGER(Mod_Yr_0);
   DATA_INTEGER(Mod_Yr_n);
   //DATA_VECTOR(Scales);
   
+  // parameters
   PARAMETER_VECTOR(logA);
   PARAMETER_VECTOR(logB);
   PARAMETER_VECTOR(logSigma);
   PARAMETER_VECTOR(logSgen);
-  PARAMETER(B_0);
-  PARAMETER(B_1);
+  PARAMETER(B_0); // binomial distribution parameter
+  PARAMETER(B_1); // binomial distribution parameter
   
-  Type ans=0.0;
-  int N_Obs = S.size(); 
-  vector<Type> LogR_Pred(N_Obs);
+  // procedures (transformed parameters):
+  Type ans=0.0; // initialize log-likelihood at 0.0
+  int n = S.size();  
+  vector<Type> LogR_Pred(n);
   vector <Type> sigma=exp(logSigma);
-  vector <Type> SMSY(N_Stks);  
-  vector <Type> LogSMSY(N_Stks);
+  vector <Type> SMSY(n_stocks);  
+  vector <Type> LogSMSY(n_stocks);
   vector <Type> Sgen = exp(logSgen);
   vector <Type> B = exp(logB);
   
   // Ricker likelihood
-  for(int i=0; i<N_Obs; i++){
-    LogR_Pred(i) = logA(stk(i)) + log(S(i)) - exp(logB(stk(i))) * S(i);
-    ans += -dnorm(LogR_Pred(i), logR(i),  sigma(stk(i)), true);
+  for(int i=0; i<n; i++){
+    LogR_Pred(i) = logA(stock(i)) + log(S(i)) - exp(logB(stock(i))) * S(i);
+    ans += -dnorm(LogR_Pred(i), logR(i),  sigma(stock(i)), true);
   }
   
   // Now estimate SMSY, Sgen
@@ -39,7 +41,7 @@ Type objective_function<Type>::operator() ()
   vector <Type> Diff = LogSMSY-log(SMSY);
   ans += -sum(dnorm(Diff, 0, 1 ));
   
-  // go through ets for each year and see how many stocks
+  // go through ETS for each year and see how many stocks (what is ETS?)
   // are above their benchmark
   int Logistic_Mod_Yrs = Mod_Yr_n - Mod_Yr_0 + 1;
   vector <Type> N_Above_LRP(Logistic_Mod_Yrs);
@@ -47,10 +49,10 @@ Type objective_function<Type>::operator() ()
   vector <Type> Agg_Abund(Logistic_Mod_Yrs);
   Agg_Abund.setZero();
   
-  for(int i=0; i<N_Obs; ++i){
+  for(int i=0; i<n; ++i){
     if(yr(i) >= Mod_Yr_0 && yr(i) <= Mod_Yr_n){
       //check if ETS above LRP
-      if(S(i) > Sgen(stk(i))){
+      if(S(i) > Sgen(stock(i))){
         N_Above_LRP(yr(i)-Mod_Yr_0) += 1;
       }
       //add to aggregate abund
@@ -65,9 +67,9 @@ Type objective_function<Type>::operator() ()
   //Type Agg_Sum = sum(Agg_Abund);
   //Type Agg_Mean = Agg_Sum/N_Obs;
   
-  for(int i=0; i<Logistic_Mod_Yrs; ++i){
+  for(int i=0; i<Logistic_Mod_Yrs; i++){
     LogitP(i) = B_0 + B_1*Agg_Abund(i);
-    N(i) = N_Stks;
+    N(i) = n_stocks;
   }
   ans += -sum(dbinom_robust(N_Above_LRP, N, LogitP, true));
   
