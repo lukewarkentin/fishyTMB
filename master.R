@@ -73,6 +73,8 @@ resdfw <- pivot_wider(resdf, names_from= parameter, values_from=value) # long to
 resdfw$alpha <- exp(resdfw$logA) # get alpha
 resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
 
+res_sum <- resdfw %>% select(CU, alpha, Sgen, SMSY_80) %>% pivot_longer(cols=c(alpha, Sgen, SMSY_80)) # make summary table with same layout as report 
+write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
 
 # -------------------------------------------#
 # Save plots
@@ -81,7 +83,7 @@ resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
 # Save plot of recruits~spawners by CU
 plot_SR_by_CU(dat)
 
-# plot results to check
+# Plot results of ricker_SMSY_Sgen model
 png("figures/fig_ricker_multi_CUs.png", height=400, width=700, units="px", pointsize=12 )
 plot(exp(model_input$data_in$logR) ~ model_input$data_in$S, col = model_input$data_in$stock +1, xlab="Spawners", ylab="Recruits")
 legend(x=700000, y = 1400000, legend=unique(dat$CU), col=1:7, pch=1)
@@ -91,7 +93,7 @@ for (i in 1:7) {
   curve(exp(res$value[grep("logA", names(res$value))][i]) * x * exp(-res$value[grep("B", names(res$value))][i] * x), 
         col=i, add=TRUE)
   # plot SMSY and Sgen
-  abline(v=res$value[grep("SMSY", names(res$value))][i], col=i, add=TRUE)
-  abline(v=res$value[grep("Sgen", names(res$value))][i], col=i, lty=2, add=TRUE)
+  abline(v=res$value[grep("SMSY", names(res$value))][i], col=i)
+  abline(v=res$value[grep("Sgen", names(res$value))][i], col=i, lty=2)
 }
 dev.off()

@@ -82,7 +82,7 @@ make_model_input <- function(model_name, SRdat) {
     # data
     data_in$S <- SRdat$spawners # spawners 
     data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
-    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
+    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit). Note that it has to start with 0 for indexing within TMB
     n_stocks <- length(unique(SRdat$CU)) # number of CUs
     data_in$n_stocks <- n_stocks # number of stocks
     data_in$yr <- SRdat$year
@@ -93,8 +93,8 @@ make_model_input <- function(model_name, SRdat) {
     param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
     param_in$logSigma <- rep(-2, n_stocks)
     param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
-    param_in$B_0 <- 2 # from older code
-    param_in$B_1 <- 0.1 # from older code
+    param_in$B_0 <- 2 # from Brooke's older code
+    param_in$B_1 <- 0.1 # from Brooke's older code
   }
   
   model_in <- list()

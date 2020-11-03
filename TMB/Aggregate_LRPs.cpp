@@ -2,17 +2,16 @@
 template<class Type>
 Type objective_function<Type>::operator() () {
   // data 
-  DATA_VECTOR(S);
-  DATA_VECTOR(logR);
-  DATA_IVECTOR(stock);
-  DATA_IVECTOR(yr);
-  DATA_INTEGER(n_stocks);
-  DATA_INTEGER(Mod_Yr_0);
-  DATA_INTEGER(Mod_Yr_n);
-  //DATA_VECTOR(Scales);
-  
+  DATA_VECTOR(S); // spawners
+  DATA_VECTOR(logR); // log(recruits)
+  DATA_IVECTOR(stock); // stock / CU name
+  DATA_IVECTOR(yr); // year
+  DATA_INTEGER(n_stocks); // number of stocks / CUs
+  DATA_INTEGER(Mod_Yr_0); // first year of SR data
+  DATA_INTEGER(Mod_Yr_n); // last year of SR data
+
   // parameters
-  PARAMETER_VECTOR(logA);
+  PARAMETER_VECTOR(logA); 
   PARAMETER_VECTOR(logB);
   PARAMETER_VECTOR(logSigma);
   PARAMETER_VECTOR(logSgen);
@@ -22,11 +21,11 @@ Type objective_function<Type>::operator() () {
   // procedures (transformed parameters):
   Type ans=0.0; // initialize log-likelihood at 0.0
   int n = S.size();  
-  vector<Type> LogR_Pred(n);
-  vector <Type> sigma=exp(logSigma);
-  vector <Type> SMSY(n_stocks);  
-  vector <Type> LogSMSY(n_stocks);
-  vector <Type> Sgen = exp(logSgen);
+  vector<Type> LogR_Pred(n); // vector of predicted log(recruits)
+  vector <Type> sigma=exp(logSigma); 
+  vector <Type> SMSY(n_stocks);  // stock-specific SMSY values
+  vector <Type> LogSMSY(n_stocks); // stock-specific log(SMSY) values
+  vector <Type> Sgen = exp(logSgen); 
   vector <Type> B = exp(logB);
   
   // Ricker likelihood
