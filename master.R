@@ -60,7 +60,9 @@ obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, D
 opt <- nlminb(obj$par, obj$fn, obj$gr)
 sdreport(obj)
 res <- sdreport(obj) # save results
-res$value
+round(res$value, 1)
+# Sgen values from Aggregate_LRPs model are much higher (at least double) those from 
+# ricker_SMSY_Sgen. Need to look into why.
 
 # -------------------------------------------#
 # Save model output
