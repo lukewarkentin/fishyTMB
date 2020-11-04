@@ -4,7 +4,7 @@
 # Load packages, data, and functions
 # -------------------------------------------#
 
-# setwd("C:/github/fishyTMB") # temporary, set working directory
+setwd("C:/github/fishyTMB") # temporary, set working directory
 
 # read in required libraries
 library(TMB)
@@ -24,8 +24,8 @@ source("load_data.r")
 # -------------------------------------------#
 #model_input <- make_model_input(model_name = "ricker_basic", SRdat = dat)
 #model_input <- make_model_input(model_name = "ricker_multi_CUs", SRdat=dat)
-model_input <- make_model_input(model_name = "ricker_SMSY_Sgen", SRdat=dat)
-#model_input <- make_model_input(model_name = "Aggregate_LRPs", SRdat=dat)
+#model_input <- make_model_input(model_name = "ricker_SMSY_Sgen", SRdat=dat)
+model_input <- make_model_input(model_name = "Aggregate_LRPs", SRdat=dat)
 
 # -------------------------------------------#
 # Compile TMB models
@@ -53,8 +53,8 @@ dyn.load(dynlib("TMB/Aggregate_LRPs"))
 # Make model function
 #obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_basic")
 #obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_multi_CUs")
-obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_SMSY_Sgen")
-#obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="Aggregate_LRPs")
+#obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="ricker_SMSY_Sgen")
+obj <- MakeADFun(data= model_input$data_in, parameters = model_input$param_in, DLL="Aggregate_LRPs")
 
 # Optimize
 opt <- nlminb(obj$par, obj$fn, obj$gr)
@@ -66,7 +66,7 @@ res$value
 # Save model output
 # -------------------------------------------#
 
-# make a data frame with model estimates and CU names
+# make a data frame with model estimates and CU names (works with ricker_SMSY_Sgen results)
 CUcols <- rep(unique(dat$CU), 5) # make a vector of the CU names to bind with the estimates
 resdf <- data.frame(parameter = names(res$value), value = res$value, CU= CUcols) # bind estimates with CU names
 resdfw <- pivot_wider(resdf, names_from= parameter, values_from=value) # long to wide format
@@ -74,7 +74,7 @@ resdfw$alpha <- exp(resdfw$logA) # get alpha
 resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
 
 res_sum <- resdfw %>% select(CU, alpha, Sgen, SMSY_80) %>% pivot_longer(cols=c(alpha, Sgen, SMSY_80)) # make summary table with same layout as report 
-write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
+#write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
 
 # -------------------------------------------#
 # Save plots

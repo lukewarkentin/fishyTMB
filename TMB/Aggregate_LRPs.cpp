@@ -83,7 +83,6 @@ Type objective_function<Type>::operator() () {
   REPORT(Agg_Abund);
   ADREPORT(Agg_BM);
   
-  
   return ans;
   
 }
