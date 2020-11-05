@@ -69,7 +69,7 @@ make_model_input <- function(model_name, SRdat) {
   }
   
   # If model is with SMSY and Sgen outputs
-  if(model_name=="Aggregate_LRPs") {
+  if(model_name == "Aggregate_LRPs") {
     # data
     data_in$yr <- SRdat$year
     data_in$Mod_Yr_0 <- min(SRdat$year)
@@ -89,11 +89,16 @@ make_model_input <- function(model_name, SRdat) {
 
 
 # Function to run optimization and save output
-run_model <- function(model_name) {
-  obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, parameters = model_input_list[[model_name]]$param_in, DLL=model_name)
-  # Optimize
-  opt <- nlminb(obj$par, obj$fn, obj$gr)
-  res <- sdreport(obj) # save results
-  sum <- summary(res)
-  sum
+run_model <- function(model_name, phases) {
+  if(phases == 1 ){ # for single phase model
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, parameters = model_input_list[[model_name]]$param_in, DLL=model_name)
+    # Optimize
+    opt <- nlminb(obj$par, obj$fn, obj$gr)
+    sum <- summary(sdreport(obj))
+    sum
+  }
+  if(phases == 2){
+
+    
+  }
 }

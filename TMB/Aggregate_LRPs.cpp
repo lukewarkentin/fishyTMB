@@ -77,7 +77,6 @@ Type objective_function<Type>::operator() () {
   //Type Agg_BM = ((log(0.95 / 0.05) - B_0)*Agg_Mean)/(B_1);
   Type Agg_BM = (log(0.95 / 0.05) - B_0)/(B_1);
   
-  ADREPORT(logA);
   ADREPORT(B);
   ADREPORT(SMSY);
   ADREPORT(Sgen);

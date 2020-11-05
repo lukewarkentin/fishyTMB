@@ -31,13 +31,13 @@ plot_compare_mods <- function(mod1, mod2) {
     curve(mod1alpha * x * exp(- mod1beta * x), 
           col="black", add=TRUE)
     curve(mod2alpha * x * exp(- mod2beta * x), 
-          col="dodgerblue", add=TRUE)
+          col="dodgerblue", add=TRUE, lty=2)
     # plot SMSY and Sgen
     #abline(v=res$value[grep("SMSY", names(res$value))][i], col=i)
     #abline(v=res$value[grep("Sgen", names(res$value))][i], col=i, lty=2)
     title(main = CUs[i])
   }
   plot(x=1:10, y=1:10, type='n', ann = FALSE, xaxt = 'n', yaxt = 'n', bty = 'n')
-  legend(x=1, y=5, legend=c(mod1, mod2), col=c("black", "dodgerblue"), lty=1)
+  legend(x=1, y=5, legend=c(mod1, mod2), col=c("black", "dodgerblue"), lty=c(1,2))
   dev.off()
 }
