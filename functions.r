@@ -5,6 +5,7 @@
 #   get_SR_dat : Test if data is already present; if false, write data to csv
 #   loadTMB : Test whether TMB files are already compiled, if not, don't recompile. Then load model
 #   make_model_input: Prepare data and parameter inputs for a particular TMB model and data
+#   run_model: Run TMB model and get output
 #
 # -----------------------------------
 
@@ -38,21 +39,19 @@ make_model_input <- function(model_name, SRdat) {
   # if model is basic Ricker with 1 population
   if(model_name =="ricker_basic") {
     SRdat <- SRdat[grep("1 -", SRdat$CU), ] # if model is the basic ricker with one CU, grab just one CU
-    # data
-    data_in$S <- SRdat$spawners # spawners 
-    data_in$logR <- log(SRdat$recruits) # natural log of recruits 
-    # parameters
+    # parameters (only one CU)
     param_in$logA <- 1
     param_in$logB <- as.numeric(log(quantile(SRdat$spawners, 0.8)))
     param_in$logSigma <- -2
   }
-  # Set spawner and log(recruit) data inputs
-    
-  # If model multi-CU (not hierarchical)
-  if(model_name == "ricker_multi_CUs") {
-    # data
+  
+  # Set spawner and log(recruit) data inputs (for all models)
     data_in$S <- SRdat$spawners # spawners 
-    data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
+    data_in$logR <- log(SRdat$recruits) # natural log of recruits 
+    
+  # If multi-CU model (all models except basic)
+  if(model_name != "ricker_basic") {
+    # data
     data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
     n_stocks <- length(unique(SRdat$CU)) # number of CUs
     data_in$n_stocks <- n_stocks # number of stocks
@@ -62,37 +61,20 @@ make_model_input <- function(model_name, SRdat) {
     param_in$logSigma <- rep(-2, n_stocks)
   }
   
-  # If model is with SMSY and Sgen outputs
-  if(model_name=="ricker_SMSY_Sgen") {
+  # If model is with SMSY and Sgen outputs (all models except ricker_basic and ricker_multi_CUs)
+  if(! model_name %in% c("ricker_basic", "ricker_multi_CUs")) {
     # data
-    data_in$S <- SRdat$spawners # spawners 
-    data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
-    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit)
-    n_stocks <- length(unique(SRdat$CU)) # number of CUs
-    data_in$n_stocks <- n_stocks # number of stocks
     # parameters
-    param_in$logA <- rep(1, n_stocks) # intial values of logA for each CU
-    param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
-    param_in$logSigma <- rep(-2, n_stocks)
     param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
   }
   
   # If model is with SMSY and Sgen outputs
   if(model_name=="Aggregate_LRPs") {
     # data
-    data_in$S <- SRdat$spawners # spawners 
-    data_in$logR <- log(SRdat$recruits) # natural log of recruitsparam_in$logA <- 1
-    data_in$stock <- as.integer(as.factor(SRdat$CU)) - 1 # numeric vector of CU (conservation unit). Note that it has to start with 0 for indexing within TMB
-    n_stocks <- length(unique(SRdat$CU)) # number of CUs
-    data_in$n_stocks <- n_stocks # number of stocks
     data_in$yr <- SRdat$year
     data_in$Mod_Yr_0 <- min(SRdat$year)
     data_in$Mod_Yr_n <- max(SRdat$year)
     # parameters
-    param_in$logA <- rep(1, n_stocks) # intial values of logA for each CU
-    param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
-    param_in$logSigma <- rep(-2, n_stocks)
-    param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
     param_in$B_0 <- 2 # from Brooke's older code
     param_in$B_1 <- 0.1 # from Brooke's older code
   }
@@ -105,3 +87,13 @@ make_model_input <- function(model_name, SRdat) {
   
 } # end of function
 
+
+# Function to run optimization and save output
+run_model <- function(model_name) {
+  obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, parameters = model_input_list[[model_name]]$param_in, DLL=model_name)
+  # Optimize
+  opt <- nlminb(obj$par, obj$fn, obj$gr)
+  res <- sdreport(obj) # save results
+  sum <- summary(res)
+  sum
+}

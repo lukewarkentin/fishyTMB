@@ -19,25 +19,26 @@ Type objective_function<Type>::operator() () {
   PARAMETER(B_1); // binomial distribution parameter
   
   // procedures (transformed parameters):
-  Type ans=0.0; // initialize log-likelihood at 0.0
-  int n = S.size();  
-  vector<Type> LogR_Pred(n); // vector of predicted log(recruits)
+  int n = S.size();  // make integer of number data points to loop over (length of S vector)
+  vector<Type> logR_Pred(n); // vector of predicted log(recruits)
   vector <Type> sigma=exp(logSigma); 
-  vector <Type> SMSY(n_stocks);  // stock-specific SMSY values
-  vector <Type> LogSMSY(n_stocks); // stock-specific log(SMSY) values
-  vector <Type> Sgen = exp(logSgen); 
   vector <Type> B = exp(logB);
+  vector <Type> SMSY(n_stocks);  // stock-specific SMSY values
+  vector <Type> logSMSY(n_stocks); // stock-specific log(SMSY) values
+  vector <Type> Sgen = exp(logSgen); 
+  
+  Type ans=0.0; // initialize log-likelihood at 0.0
   
   // Ricker likelihood
   for(int i=0; i<n; i++){
-    LogR_Pred(i) = logA(stock(i)) + log(S(i)) - exp(logB(stock(i))) * S(i);
-    ans += -dnorm(LogR_Pred(i), logR(i),  sigma(stock(i)), true);
+    logR_Pred(i) = logA(stock(i)) + log(S(i)) - exp(logB(stock(i))) * S(i); // Ricker equation to give predicted log(recruits)
+    ans += -dnorm(logR_Pred(i), logR(i),  sigma(stock(i)), true); // calculate negative log-likelihood, true is for log = TRUE.
   }
   
   // Now estimate SMSY, Sgen
   SMSY = logA*(0.5-0.07*logA)/B;
-  LogSMSY = logA + logSgen - B * Sgen;
-  vector <Type> Diff = LogSMSY-log(SMSY);
+  logSMSY = logA + logSgen - B * Sgen;
+  vector <Type> Diff = logSMSY-log(SMSY);
   ans += -sum(dnorm(Diff, 0, 1 ));
   
   // go through ETS for each year and see how many stocks (what is ETS?)
@@ -76,12 +77,14 @@ Type objective_function<Type>::operator() () {
   //Type Agg_BM = ((log(0.95 / 0.05) - B_0)*Agg_Mean)/(B_1);
   Type Agg_BM = (log(0.95 / 0.05) - B_0)/(B_1);
   
-  
+  ADREPORT(logA);
+  ADREPORT(B);
   ADREPORT(SMSY);
   ADREPORT(Sgen);
   REPORT(N_Above_LRP);
   REPORT(Agg_Abund);
   ADREPORT(Agg_BM);
+  
   
   return ans;
   
