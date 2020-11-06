@@ -2,29 +2,24 @@
 # Functions to plot and save figures
 #
 #
-#     plot_SR_by_CU - 
-#     plot_compare_mods
+#     plot_compare_mods - plot ricker curves for two models, one panel for each stock
+#     plot_logistic - plot logistic model fits
 # -----------------------------
 
-# Plot recruits ~ spawners for each CU
-plot_SR_by_CU <- function(x) {
-  fig1 <- ggplot(x, aes(y=spawners, x= recruits)) + 
-                   geom_point() + 
-                   facet_wrap(~CU, scales="free") + 
-                   theme_classic()
-  ggsave("figures/fig_SR_by_CU.png", fig1)
-}
-
-#Compare ricker fits between two TMB models 
+# Compare ricker fits between two TMB models 
 plot_compare_mods <- function(mod1, mod2) {
   CUs <- unique(dat$CU)
   png(paste0("figures/fig_compare_", mod1, "_", mod2, ".png"), height=8, width=11, units="in",res=300, pointsize=14 )
   par(mfrow=c(2,4), mar=c(4,4,4,0)+0.2)
+  res1 <- mod_out[[mod1]] # get data frame of results for model 1
+  res2 <- mod_out[[mod2]] # get data frame of results for model 2
   for (i in 1:length(CUs)) {
-    mod1alpha <- exp(mod_out[[mod1]][grep("logA", row.names(mod_out[[mod1]]))][i])
-    mod2alpha <- exp(mod_out[[mod2]][grep("logA", row.names(mod_out[[mod2]]))][i])
-    mod1beta <- exp(mod_out[[mod1]][grep("logB", row.names(mod_out[[mod1]]))][i])
-    mod2beta <- exp(mod_out[[mod2]][grep("logB", row.names(mod_out[[mod2]]))][i])
+    # get model 1 parameters
+    mod1alpha <- exp(res1$Estimate[res1$param=="logA"][i])
+    mod1beta <-      res1$Estimate[res1$param=="B"][i] 
+    # get model 2 parameters
+    mod2alpha <- exp(res2$Estimate[res2$param=="logA"][i])
+    mod2beta <-      res2$Estimate[res2$param=="B"][i]
     plot(dat$recruits[dat$CU==CUs[i]] ~ dat$spawners[dat$CU==CUs[i]], xlab="Spawners", ylab="Recruits")
     # plot Ricker curves:
     # R = alpha * S * exp(- beta * S)
@@ -32,12 +27,12 @@ plot_compare_mods <- function(mod1, mod2) {
           col="black", add=TRUE)
     curve(mod2alpha * x * exp(- mod2beta * x), 
           col="dodgerblue", add=TRUE, lty=2)
-    # plot SMSY and Sgen
-    #abline(v=res$value[grep("SMSY", names(res$value))][i], col=i)
-    #abline(v=res$value[grep("Sgen", names(res$value))][i], col=i, lty=2)
+    # plot carrying capacity 1/beta
+    abline(v=1/mod1beta, col="black")
+    abline(v=1/mod2beta, col="dodgerblue", lty=2)
     title(main = CUs[i])
   }
   plot(x=1:10, y=1:10, type='n', ann = FALSE, xaxt = 'n', yaxt = 'n', bty = 'n')
-  legend(x=1, y=5, legend=c(mod1, mod2), col=c("black", "dodgerblue"), lty=c(1,2))
+  legend(x=0, y=5, legend=c(mod1, mod2), col=c("black", "dodgerblue"), lty=c(1,2))
   dev.off()
 }

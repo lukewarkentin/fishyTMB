@@ -1,13 +1,23 @@
 # -----------------------------------
 # Functions
 #
-#
+#   inv_logit
+#   logit
 #   get_SR_dat : Test if data is already present; if false, write data to csv
-#   loadTMB : Test whether TMB files are already compiled, if not, don't recompile. Then load model
 #   make_model_input: Prepare data and parameter inputs for a particular TMB model and data
 #   run_model: Run TMB model and get output
 #
 # -----------------------------------
+
+# Inverse logit and logit funcitons can come in handy =====================================================================
+inv_logit <- function(x){
+  exp(x)/(1+exp(x))
+}
+
+logit <- function(x){
+  log(x/1-x)
+}
+
 
 # Function to test if data is already present; if false, write data to csv
 get_SR_dat <- function(x) {
@@ -21,18 +31,9 @@ get_SR_dat <- function(x) {
       } # end of else statement
 }
 
-# Function to test whether TMB files are already compiled, if not, don't recompile. Then load model
-loadTMB <- function(x) {
-  modpath <- paste0("TMB/", x) # model path string
-  if(file.exists(paste0(modpath, ".dll"))) { # test if TMB .cpp file is already present
-        warning("Already compiled: .dll file already exists") # if file exists, give warning
-      } else { compile(paste0(modpath, ".cpp"), "-O1 -g",DLLFLAGS="") # compile .cpp file of model, extra arguments allow debug with gdbsource()
-  } # end of else statement 
-  dyn.load(dynlib(modpath)) # load .dll file of model
-}
-
 # Function to prepare data and parameter inputs for a particular TMB model
 make_model_input <- function(model_name, SRdat) {
+  
   data_in <- list() # create empty list for observed data to go into model
   param_in <- list() # create empty list for parameters with initial values assigned
   
@@ -68,12 +69,15 @@ make_model_input <- function(model_name, SRdat) {
     param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
   }
   
-  # If model is with SMSY and Sgen outputs
+  # If model is has logistic regression
   if(model_name == "Aggregate_LRPs") {
     # data
     data_in$yr <- SRdat$year
     data_in$Mod_Yr_0 <- min(SRdat$year)
     data_in$Mod_Yr_n <- max(SRdat$year)
+    agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners, na.rm=TRUE))
+    spawners_range <- seq(0,max(agg_data$total_spawners),length.out = 100)
+    data_in$spawners_range <- spawners_range # vector to predict N over threshold
     # parameters
     param_in$B_0 <- 2 # from Brooke's older code
     param_in$B_1 <- 0.1 # from Brooke's older code
@@ -89,16 +93,77 @@ make_model_input <- function(model_name, SRdat) {
 
 
 # Function to run optimization and save output
-run_model <- function(model_name, phases) {
+run_model <- function(model_name, phases, CU_names) {
+  
+  # single phase model =================
+  
   if(phases == 1 ){ # for single phase model
     obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, parameters = model_input_list[[model_name]]$param_in, DLL=model_name)
     # Optimize
     opt <- nlminb(obj$par, obj$fn, obj$gr)
-    sum <- summary(sdreport(obj))
-    sum
-  }
-  if(phases == 2){
-
+  } 
+  
+  # 2 phase model =================== 
+  # 1 phase and 3 phase ricker estimates were different. See if optimization Sgen with alpha and beta makes a difference
+  
+  if(phases==2) {
+    map = list(B_0 = factor(NA), B_1 = factor(NA)) # fix logistic binomial model parameters
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, # make objective model function with fixed values of B_0 and B_1
+                     parameters = model_input_list[[model_name]]$param_in, 
+                     DLL=model_name, map=map)
+    opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize
+    param1 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estimation
     
+    # phase 2 of optimization (B_0 and B_1)
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in,
+                     parameters = param1,  # use parameter estimates from phase 1
+                     DLL=model_name)
+    
+    opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize (phase 2)
   }
-}
+  
+  # 3 phase model ===================
+  
+  if(phases == 3) {
+    map = list(logSgen = rep(factor(NA), length(unique(dat$CU))), B_0 = factor(NA), B_1 = factor(NA)) # fix logistic binomial model parameters
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, # make objective model function with fixed values of B_0 and B_1
+                     parameters = model_input_list[[model_name]]$param_in, 
+                     DLL=model_name, map=map)
+    opt <- nlminb(obj$par, obj$fn, obj$gr, control = list(eval.max = 1e5, iter.max = 1e5)) # optimize, try control
+    param1 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estimation
+    
+    # pull out SMSY values
+    All_Ests <- data.frame(summary(sdreport(obj))) # get data frame of estimates with std error
+    All_Ests$Param <- row.names(All_Ests) # add column of parameter names
+    SMSYs <- All_Ests[grepl("SMSY", All_Ests$Param), "Estimate" ] # pull out vector of SMSY values
+    param1$logSgen <- log(0.3*SMSYs) # set initial value of logSgen as a function of SMSYs 
+    
+    # phase 2 of optimization (for logSgen)
+    map2 <- list( B_0 = factor(NA), B_1 = factor(NA))
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, # make objective model function with fixed values of B_0 and B_1
+                     parameters = param1,  # use parameter estimates from phase 1
+                     DLL=model_name, map=map2)
+    
+    opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize (phase 2)
+    param2 <- obj$env$parList(opt$par) # get parameter estimates after phase 2 estimation
+    
+    # phase 3 of optimization (for B_0 and B_1)
+    obj <- MakeADFun(data= model_input_list[[model_name]]$data_in, # make objective model function with fixed values of B_0 and B_1
+                     parameters = param2,  # use parameter estimates from phase 1
+                     DLL=model_name)
+    opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize (phase 3)
+    }
+  
+    # make data frame of model results ================
+  
+    mres <- data.frame(summary(sdreport(obj))) 
+    mres$param <- row.names(mres) # make column of parameter names
+    mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter names. \\. is "." and \\d means any digit
+    mres$mod <- model_name # this would be to add a column of model names. Would work if in a function
+    mres$phases <- phases # number of phases
+    mres$CU_ID[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- seq_along(CU_names)  # add a CU_ID column
+    mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
+    mres <- mres[order(mres$param),] # order based on parameter
+    mres
+    
+} # end of function

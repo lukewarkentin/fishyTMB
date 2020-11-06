@@ -9,6 +9,7 @@ Type objective_function<Type>::operator() () {
   DATA_INTEGER(n_stocks); // number of stocks / CUs
   DATA_INTEGER(Mod_Yr_0); // first year of SR data
   DATA_INTEGER(Mod_Yr_n); // last year of SR data
+  DATA_VECTOR(spawners_range); // range from 0 - max total spawners, to predict logistic regression over
 
   // parameters
   PARAMETER_VECTOR(logA); 
@@ -32,13 +33,13 @@ Type objective_function<Type>::operator() () {
   // Ricker likelihood
   for(int i=0; i<n; i++){
     logR_Pred(i) = logA(stock(i)) + log(S(i)) - exp(logB(stock(i))) * S(i); // Ricker equation to give predicted log(recruits)
-    ans += -dnorm(logR_Pred(i), logR(i),  sigma(stock(i)), true); // calculate negative log-likelihood, true is for log = TRUE.
+    ans -= dnorm(logR_Pred(i), logR(i),  sigma(stock(i)), true); // calculate negative log-likelihood, true is for log = TRUE.
   }
   
   // Now estimate SMSY, Sgen
-  SMSY = logA*(0.5-0.07*logA)/B;
+  SMSY = logA*(0.5-0.07*logA)/B; // Hilborn and Walters estimation of SMSY and Sgen
   logSMSY = logA + logSgen - B * Sgen;
-  vector <Type> Diff = logSMSY-log(SMSY);
+  vector<Type> Diff = logSMSY-log(SMSY);
   ans += -sum(dnorm(Diff, 0, 1 ));
   
   // go through ETS for each year and see how many stocks (what is ETS?)
@@ -77,12 +78,19 @@ Type objective_function<Type>::operator() () {
   //Type Agg_BM = ((log(0.95 / 0.05) - B_0)*Agg_Mean)/(B_1);
   Type Agg_BM = (log(0.95 / 0.05) - B_0)/(B_1);
   
+  // Get estimates for plotting CIs
+  int n_preds = spawners_range.size();
+  vector<Type> logit_preds(n_preds);
+  
+  logit_preds = B_0 + B_1*spawners_range;
+  
   ADREPORT(B);
   ADREPORT(SMSY);
   ADREPORT(Sgen);
   REPORT(N_Above_LRP);
   REPORT(Agg_Abund);
   ADREPORT(Agg_BM);
+  ADREPORT(logit_preds)
   
   
   return ans;
