@@ -59,6 +59,7 @@ mod_out
 # =======================================================================#
 # --- Figure out how logistic predictions are saved from model object ---
 # =======================================================================#
+# Use Aggregate_LRP model
 # 2 phase optimization
 map = list(B_0 = factor(NA), B_1 = factor(NA)) # fix logistic binomial model parameters
 obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in, # make objective model function with fixed values of B_0 and B_1
@@ -73,7 +74,7 @@ obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in,
                    DLL="Aggregate_LRPs")
   
 opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize (phase 2)
-
+# make data frame of results, and format
 mres <- data.frame(summary(sdreport(obj))) 
 mres$param <- row.names(mres) # make column of parameter names
 mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter names. \\. is "." and \\d means any digit
@@ -81,32 +82,28 @@ mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter
 #mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
 mres <- mres[order(mres$param),] # order based on parameter
 mres
-
+# get predictions 
 preds <- inv_logit(mres$Estimate[mres$param=="logit_preds"])
 preds_up <- inv_logit(mres$Estimate[mres$param=="logit_preds"] + mres$Std..Error[mres$param=="logit_preds"])
 preds_low <- inv_logit(mres$Estimate[mres$param=="logit_preds"] - mres$Std..Error[mres$param=="logit_preds"])
-
+# get the values to predict over
 agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range
-
-plot( preds ~ agg_abund, type="l")
-lines( preds_up ~ agg_abund, col="dodgerblue")
-lines( preds_low ~ agg_abund, col="dodgerblue")
-
+# plot predicted values
+png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
+plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
+#lines( preds_up ~ agg_abund, col="dodgerblue")
+#lines( preds_low ~ agg_abund, col="dodgerblue")
+# plot observed data
 points(y = obj$report()$N_Above_LRP/7, x= obj$report()$Agg_Abund)
+# plot benchmark
 abline(v=mres$Estimate[mres$param=="Agg_BM"], col="orange", lty=2)
-
-# Plot logistic regressions 
-res <- mod_out[["Aggregate_LRPs_3phase"]]
-B_0 <- res$Estimate[res$param=="B_0"]
-B_1 <- res$Estimate[res$param=="B_1"]
-
-agg_data <- dat %>% group_by(year) %>% summarise(total_spawners = sum(spawners, na.rm=TRUE))
-spawners_range <- seq(0,max(agg_data$total_spawners),length.out = 100)
-xx <- seq(0,max(spawners_range), length.out = 100)
-yy <- B_0 + B_1*xx
-
-plot(yy~xx, type="p")
-
+# Get binomial regression parameters
+B_0 <- mres$Estimate[mres$param=="B_0"]
+B_1 <- mres$Estimate[mres$param=="B_1"]
+# plot binomial model estimate
+curve( inv_logit(B_0 + B_1*x), col="dodgerblue", lty=3 , lwd=2, add=TRUE)
+legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("black", "dodgerblue", "orange"), )
+dev.off()
 # -------------------------------------------#
 # Save plots
 # -------------------------------------------#

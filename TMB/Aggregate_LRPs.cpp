@@ -76,7 +76,7 @@ Type objective_function<Type>::operator() () {
   
   //Get final BM
   //Type Agg_BM = ((log(0.95 / 0.05) - B_0)*Agg_Mean)/(B_1);
-  Type Agg_BM = (log(0.95 / 0.05) - B_0)/(B_1);
+  Type Agg_BM = (log(0.8 / 0.2) - B_0)/(B_1);
   
   // Get estimates for plotting CIs
   int n_preds = spawners_range.size();
