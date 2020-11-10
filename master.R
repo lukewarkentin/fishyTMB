@@ -104,6 +104,7 @@ B_1 <- mres$Estimate[mres$param=="B_1"]
 curve( inv_logit(B_0 + B_1*x), col="dodgerblue", lty=3 , lwd=2, add=TRUE)
 legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("black", "dodgerblue", "orange"), )
 dev.off()
+
 # -------------------------------------------#
 # Save plots
 # -------------------------------------------#
@@ -122,7 +123,12 @@ ggplot(dat, aes(y=recruits/spawners, x=year, colour=CU)) +
   geom_point() +
   scale_y_log10() +
   geom_hline(aes(yintercept=1)) +
-  facet_wrap(~CU, scales="free_y") + 
+  facet_wrap(~CU, scales="free_y")  
+  #theme_classic()
+
+ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) + 
+  geom_point(size=4,aes(colour=year)) + 
+  geom_text(aes(label=year)) + 
   theme_classic()
 
 # -------------------------------------------#

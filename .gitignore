@@ -46,4 +46,5 @@ TMB/*.o # created when .cpp TMB models compiled
 #Word documents
 *.docx
 
+hydrometric.r
 ExploratoryCode.R # old code from a different repository, Brooke Davis
