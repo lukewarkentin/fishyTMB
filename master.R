@@ -131,6 +131,13 @@ ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) +
   geom_text(aes(label=year)) + 
   theme_classic()
 
+# # Correlation of recruits/spawner
+# dat$RS <- dat$recruits/dat$spawners # get recruits/spawner
+# datw <- dat %>% select(-c(spawners, recruits)) %>% pivot_wider(names_from=CU, values_from=RS)
+# corr <- cor(datw[,!names(datw) %in% "year"])
+# corrl <- data.frame(corr, check.names = FALSE ) %>% mutate(CU = rownames(.)) %>% pivot_longer(!CU, names_to = "CU2", values_to="corr")
+# ggplot(corrl, aes(y=CU, x=CU2, fill=corr)) + geom_tile()
+
 # -------------------------------------------#
 # Save model output (to compare with Holt et al. 2018)
 # -------------------------------------------#
