@@ -32,7 +32,7 @@ get_SR_dat <- function(x) {
 }
 
 # Function to prepare data and parameter inputs for a particular TMB model
-make_model_input <- function(model_name, SRdat) {
+make_model_input <- function(model_name, SRdat, scale) {
   
   data_in <- list() # create empty list for observed data to go into model
   param_in <- list() # create empty list for parameters with initial values assigned
@@ -47,8 +47,8 @@ make_model_input <- function(model_name, SRdat) {
   }
   
   # Set spawner and log(recruit) data inputs (for all models)
-    data_in$S <- SRdat$spawners # spawners 
-    data_in$logR <- log(SRdat$recruits) # natural log of recruits 
+    data_in$S <- SRdat$spawners / scale# spawners 
+    data_in$logR <- log(SRdat$recruits/scale) # natural log of recruits 
     
   # If multi-CU model (all models except basic)
   if(model_name != "ricker_basic") {
@@ -58,7 +58,7 @@ make_model_input <- function(model_name, SRdat) {
     data_in$n_stocks <- n_stocks # number of stocks
     # parameters
     param_in$logA <- rep(1, n_stocks) # intial values of logA for each CU
-    param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners, 0.8)))$x) ))
+    param_in$logB <- as.numeric(log(1/( (SRdat %>% group_by(CU) %>% summarise(x=quantile(spawners/scale, 0.8)))$x) ))
     param_in$logSigma <- rep(-2, n_stocks)
   }
   
@@ -66,7 +66,7 @@ make_model_input <- function(model_name, SRdat) {
   if(! model_name %in% c("ricker_basic", "ricker_multi_CUs")) {
     # data
     # parameters
-    param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners, 0.5)))$x) 
+    param_in$logSgen <- log((SRdat %>% group_by(CU) %>%  summarise(x=quantile(spawners/scale, 0.5)))$x) 
   }
   
   # If model is has logistic regression
@@ -75,11 +75,12 @@ make_model_input <- function(model_name, SRdat) {
     data_in$yr <- SRdat$year
     data_in$Mod_Yr_0 <- min(SRdat$year)
     data_in$Mod_Yr_n <- max(SRdat$year)
-    agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners, na.rm=TRUE))
-    spawners_range <- seq(0, max(agg_data$total_spawners), length.out = 100)
+    agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners/scale, na.rm=TRUE))
+    #spawners_range <- seq(0,max(agg_data$total_spawners),length.out = 100)
+    spawners_range <- seq(-100,max(agg_data$total_spawners),length.out = 100)
     data_in$spawners_range <- spawners_range # vector to predict N over threshold
     # parameters
-    param_in$B_0 <- 2 # from Brooke's older code
+    param_in$B_0 <- -2 # from Brooke's older code
     param_in$B_1 <- 0.1 # from Brooke's older code
   }
   
@@ -164,6 +165,7 @@ run_model <- function(model_name, phases, CU_names) {
     mres$CU_ID[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- seq_along(CU_names)  # add a CU_ID column
     mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
     mres <- mres[order(mres$param),] # order based on parameter
+    # re-scale parameter estimates
     mres
     
 } # end of function

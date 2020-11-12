@@ -51,5 +51,5 @@ TMB/*.o # created when .cpp TMB models compiled
 weather_hydrometric.r  
 # old code from a different repository, Brooke Davis
 ExploratoryCode.R  
-# distributions
-distributions.r
+# Generate data and fit GLM
+simple_glm.r
