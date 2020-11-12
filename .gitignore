@@ -46,7 +46,10 @@ TMB/*.o # created when .cpp TMB models compiled
 #Word documents
 *.docx
 
+# Miscellaneous files
 # explore available hydrometric and weather data
 weather_hydrometric.r  
 # old code from a different repository, Brooke Davis
 ExploratoryCode.R  
+# distributions
+distributions.r

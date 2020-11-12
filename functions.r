@@ -76,7 +76,7 @@ make_model_input <- function(model_name, SRdat) {
     data_in$Mod_Yr_0 <- min(SRdat$year)
     data_in$Mod_Yr_n <- max(SRdat$year)
     agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners, na.rm=TRUE))
-    spawners_range <- seq(0,max(agg_data$total_spawners),length.out = 100)
+    spawners_range <- seq(0, max(agg_data$total_spawners), length.out = 100)
     data_in$spawners_range <- spawners_range # vector to predict N over threshold
     # parameters
     param_in$B_0 <- 2 # from Brooke's older code

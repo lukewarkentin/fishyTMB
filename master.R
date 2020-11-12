@@ -65,15 +65,21 @@ map = list(B_0 = factor(NA), B_1 = factor(NA)) # fix logistic binomial model par
 obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in, # make objective model function with fixed values of B_0 and B_1
                    parameters = model_input_list[["Aggregate_LRPs"]]$param_in, 
                    DLL="Aggregate_LRPs", map=map)
+
 opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize
 param1 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estimation
   
 # phase 2 of optimization (B_0 and B_1)
 obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in,
                    parameters = param1,  # use parameter estimates from phase 1
-                   DLL="Aggregate_LRPs")
-  
-opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize (phase 2)
+                   DLL="Aggregate_LRPs", map=list(B_0=factor(-2.5)))
+
+# Create upper & lower bounds vectors that are same length and order as nlminb start vector
+upper<-unlist(obj$par)
+upper[1:length(upper)]<-Inf
+upper[names(upper) =="B_0"] <- -2.5 # constrain B_0 to be less than -2.5
+
+opt <- nlminb(obj$par, obj$fn, obj$gr, lower=lower, upper=upper) # optimize (phase 2)
 # make data frame of results, and format
 mres <- data.frame(summary(sdreport(obj))) 
 mres$param <- row.names(mres) # make column of parameter names
@@ -82,17 +88,21 @@ mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter
 #mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
 mres <- mres[order(mres$param),] # order based on parameter
 mres
+
 # get predictions 
 preds <- inv_logit(mres$Estimate[mres$param=="logit_preds"])
 preds_up <- inv_logit(mres$Estimate[mres$param=="logit_preds"] + mres$Std..Error[mres$param=="logit_preds"])
 preds_low <- inv_logit(mres$Estimate[mres$param=="logit_preds"] - mres$Std..Error[mres$param=="logit_preds"])
 # get the values to predict over
 agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range
-# plot predicted values
+
+test <- data.frame(prop = obj$report()$N_Above_LRP/7, abund = obj$report()$Agg_Abund)
+
+# plot predicted values--------------------#
 png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
 plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
-#lines( preds_up ~ agg_abund, col="dodgerblue")
-#lines( preds_low ~ agg_abund, col="dodgerblue")
+lines( preds_up ~ agg_abund, col="dodgerblue")
+lines( preds_low ~ agg_abund, col="dodgerblue")
 # plot observed data
 points(y = obj$report()$N_Above_LRP/7, x= obj$report()$Agg_Abund)
 # plot benchmark
@@ -102,8 +112,22 @@ B_0 <- mres$Estimate[mres$param=="B_0"]
 B_1 <- mres$Estimate[mres$param=="B_1"]
 # plot binomial model estimate
 curve( inv_logit(B_0 + B_1*x), col="dodgerblue", lty=3 , lwd=2, add=TRUE)
+
 legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("black", "dodgerblue", "orange"), )
 dev.off()
+
+
+# Try just using glm 
+fit <- glm(prop ~ abund, data=test,  family=binomial(link="logit"))
+
+summary(fit)
+B0 <- fit$coefficients[1]
+B1 <- fit$coefficients[2]
+
+plot(fit)
+
+plot(test$prop ~ test$abund, xlim=c(0,max(test$abund))) 
+curve(inv_logit(B0 + B1*x), add=TRUE)
 
 # -------------------------------------------#
 # Save plots
@@ -143,11 +167,9 @@ ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) +
 # -------------------------------------------#
 
 # make a data frame with model estimates and CU names (works with ricker_SMSY_Sgen results)
-CUcols <- rep(unique(dat$CU), 5) # make a vector of the CU names to bind with the estimates
-resdf <- data.frame(parameter = names(res$value), value = res$value, CU= CUcols) # bind estimates with CU names
-resdfw <- pivot_wider(resdf, names_from= parameter, values_from=value) # long to wide format
+resdf <- unique(mod_out[["ricker_SMSY_Sgen"]]) # pull out results for ricker_SMSY_Sgen model, remove duplicate logA rows
+resdfw <- pivot_wider(resdf[ , -grep("Std..Error", names(resdf))], names_from= param, values_from=Estimate) # long to wide format
 resdfw$alpha <- exp(resdfw$logA) # get alpha
 resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
-
-res_sum <- resdfw %>% select(CU, alpha, Sgen, SMSY_80) %>% pivot_longer(cols=c(alpha, Sgen, SMSY_80)) # make summary table with same layout as report 
+res_sum <- resdfw %>% select(CU_name, alpha, Sgen, SMSY_80) %>% pivot_longer(cols=c(alpha, Sgen, SMSY_80)) # make summary table with same layout as report 
 #write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
