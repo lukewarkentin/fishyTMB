@@ -39,7 +39,7 @@ for(i in 1:length(models)) {
 # Prepare data for TMB models
 # -------------------------------------------#
 
-scale<-10000 # set scale at 10000. TMB doesn't work as well with very large numebers
+scale<-10000 # set scale at 10000. TMB doesn't work as well with very large numbers
 
 # make list of model input lists
 model_input_list <- lapply(X=models, make_model_input, SRdat = dat, scale=scale) # model_name argument automatically evaluates to elements of models object
@@ -66,9 +66,8 @@ mod_out
 
 # Phase 1:
 
-map = list(logSgen=factor(rep(NA, 7)),B_0 = factor(NA), B_1 = factor(NA))
+map = list(logSgen=factor(rep(NA, 7)),B_0 = factor(NA), B_1 = factor(NA)) # fix logSgen and logistic parameters
 
-#map = list(B_0 = factor(NA), B_1 = factor(NA)) # fix logistic binomial model parameters
 obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in, # make objective model function with fixed values of B_0 and B_1
                    parameters = model_input_list[["Aggregate_LRPs"]]$param_in, 
                    DLL="Aggregate_LRPs", map=map)
@@ -111,7 +110,7 @@ param2 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estim
   
 # phase 3 of optimization (B_0 and B_1)
 obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in,
-                   parameters = param1,  # use parameter estimates from phase 1
+                   parameters = param2,  # use parameter estimates from phase 2
                    DLL="Aggregate_LRPs")
   
 
@@ -119,27 +118,26 @@ obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in,
 upper<-unlist(obj$par)
 upper[1:length(upper)]<-Inf
 upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than Smsy
-upper[names(upper) =="B_0"] <- -2.3 # constrain Sgen to be less than Smsy
+upper[names(upper) =="B_0"] <- -2.3 # constrain B_0 to be less than -2.3
 upper<-unname(upper)
 
 lower<-unlist(obj$par)
-lower[1:length(lower)]<--Inf
+lower[1:length(lower)]<- -Inf
 lower[names(lower) =="logSgen"] <- log(0.001) # constrain Sgen to be positive
 lower<-unname(lower)
 
 opt <- nlminb(obj$par, obj$fn, obj$gr, control = list(eval.max = 1e5, iter.max = 1e5),
-              upper = upper, lower=lower) # optimize (phase 2)
-
-param2 <- obj$env$parList(opt$par) # get parameter estimates after phase 2 estimation
-
+              upper = upper, lower=lower) # optimize (phase 3)
 
 # make data frame of results, and format
 mres <- data.frame(summary(sdreport(obj))) 
 mres$param <- row.names(mres) # make column of parameter names
 mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter names. \\. is "." and \\d means any digit
+
+# This section messes up order of predictions
+#CU_names <-  unique(dat$CU)
 #mres$CU_ID[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- seq_along(CU_names)  # add a CU_ID column
 #mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
-mres <- mres[order(mres$param),] # order based on parameter
 mres
 
 
@@ -149,27 +147,25 @@ preds_up <- inv_logit(mres$Estimate[mres$param=="logit_preds"] + mres$Std..Error
 preds_low <- inv_logit(mres$Estimate[mres$param=="logit_preds"] - mres$Std..Error[mres$param=="logit_preds"])
 # get the values to predict over
 agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range * scale
+
+# ----------------------#
+# Plot logistic regression with benchmark
+# ----------------------#
+png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
 # plot predicted values
-#png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
-plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
-
-
-
-#lines( preds_up ~ agg_abund, col="dodgerblue")
-#lines( preds_low ~ agg_abund, col="dodgerblue")
+plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, col="dodgerblue", xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
+# plot std error 
+polygon(x=c(agg_abund, rev(agg_abund)), y= c(preds_up, rev(preds_low)), col=adjustcolor("dodgerblue", alpha=0.5), border=NA)
 # plot observed data
 points(y = obj$report()$N_Above_LRP/7, x= obj$report()$Agg_Abund*scale)
-
-
-
 # plot benchmark
-abline(v=mres$Estimate[mres$param=="Agg_BM"]*scale, col="orange", lty=2)
+abline(v=mres$Estimate[mres$param=="Agg_BM"]*scale, col="gray", lty=2)
 # Get binomial regression parameters
 B_0 <- mres$Estimate[mres$param=="B_0"]
 B_1 <- mres$Estimate[mres$param=="B_1"]
 # plot binomial model estimate
-curve( inv_logit(B_0 + B_1*x), col="dodgerblue", lty=3 , lwd=2, add=TRUE)
-legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("black", "dodgerblue", "orange"), )
+curve( inv_logit(B_0 + B_1*x/scale), col="red", lty=3 , lwd=2, add=TRUE)
+legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("dodgerblue", "red", "gray"), )
 dev.off()
 
 # -------------------------------------------#

@@ -75,12 +75,12 @@ make_model_input <- function(model_name, SRdat, scale) {
     data_in$yr <- SRdat$year
     data_in$Mod_Yr_0 <- min(SRdat$year)
     data_in$Mod_Yr_n <- max(SRdat$year)
-    agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners/scale, na.rm=TRUE))
+    agg_data <- SRdat %>% group_by(year) %>% summarise(total_spawners = sum(spawners/scale, na.rm=TRUE)) # scale gets applied here
     #spawners_range <- seq(0,max(agg_data$total_spawners),length.out = 100)
     spawners_range <- seq(-100,max(agg_data$total_spawners),length.out = 100)
     data_in$spawners_range <- spawners_range # vector to predict N over threshold
     # parameters
-    param_in$B_0 <- -2 # from Brooke's older code
+    param_in$B_0 <- -2.5 # from Brooke's older code
     param_in$B_1 <- 0.1 # from Brooke's older code
   }
   
@@ -163,6 +163,7 @@ run_model <- function(model_name, phases, CU_names) {
     mres$mod <- model_name # this would be to add a column of model names. Would work if in a function
     mres$phases <- phases # number of phases
     mres$CU_ID[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- seq_along(CU_names)  # add a CU_ID column
+    # This section messes up order of predicted variables
     mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
     mres <- mres[order(mres$param),] # order based on parameter
     # re-scale parameter estimates
