@@ -18,7 +18,6 @@ logit <- function(x){
   log(x/1-x)
 }
 
-
 # Function to test if data is already present; if false, write data to csv
 get_SR_dat <- function(x) {
   if(file.exists(paste0("data_in/", x))) {  # test if data is already present in folder

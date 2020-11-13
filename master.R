@@ -75,8 +75,6 @@ opt <- nlminb(obj$par, obj$fn, obj$gr) # optimize
 param1 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estimation
 
 
-
-
 # pull out SMSY values
 All_Ests <- data.frame(summary(sdreport(obj)))
 All_Ests$Param <- row.names(All_Ests)
@@ -94,7 +92,7 @@ obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in, # make obje
 ## Create upper & lower bounds vectors that are same length and order as nlminb start vector
 upper<-unlist(obj$par)
 upper[1:length(upper)]<-Inf
-upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than Smsy
+upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than SMSY
 upper<-unname(upper)
 
 lower<-unlist(obj$par)
@@ -118,7 +116,7 @@ obj <- MakeADFun(data= model_input_list[["Aggregate_LRPs"]]$data_in,
 upper<-unlist(obj$par)
 upper[1:length(upper)]<-Inf
 upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than Smsy
-upper[names(upper) =="B_0"] <- -2.3 # constrain B_0 to be less than -2.3
+#upper[names(upper) =="B_0"] <- -2.3 # constrain B_0 to be less than -2.3
 upper<-unname(upper)
 
 lower<-unlist(obj$par)
@@ -153,7 +151,9 @@ agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range * scale
 # ----------------------#
 png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
 # plot predicted values
-plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, col="dodgerblue", xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
+plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, col="dodgerblue", 
+      xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen", 
+      main="TMB model results, unconstrained B_0 (3 phase)")
 # plot std error 
 polygon(x=c(agg_abund, rev(agg_abund)), y= c(preds_up, rev(preds_low)), col=adjustcolor("dodgerblue", alpha=0.5), border=NA)
 # plot observed data
@@ -166,6 +166,70 @@ B_1 <- mres$Estimate[mres$param=="B_1"]
 # plot binomial model estimate
 curve( inv_logit(B_0 + B_1*x/scale), col="red", lty=3 , lwd=2, add=TRUE)
 legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("dodgerblue", "red", "gray"), )
+dev.off()
+
+# Play with B_0 and B_1 values
+#B_1 <- B_1 + B_1* 0.5
+#B_1 <- B_1 -B_1* 0.5
+#B_0 <- B_0 + B_0* 0.5
+#B_0 <- B_0 -B_0* 0.5
+
+# Look at unscaled data
+# xunscaled <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range
+# plot(preds ~ xunscaled)
+# curve( inv_logit(B_0 + B_1*x), col="red", lty=3 , lwd=2, add=TRUE)
+
+# --------------------------------#
+# Use glm function to compare different models
+# --------------------------------#
+
+#### Compare with and without influential point with high aggregate abundance
+
+# make a data frame of just aggregate abundance and prop over Sgen
+tdf <- data.frame(prop = obj$report()$N_Above_LRP/7 , abd = obj$report()$Agg_Abund) 
+tdf2 <- tdf[-which.max(tdf$abd),] # remove highest abundance, influential point
+
+# fit <- glm(prop ~ abd, data=tdf, family=quasibinomial(link="logit"))
+# fit2 <- glm(prop ~ abd, data=tdf2, family=quasibinomial(link="logit"))
+# coefs <- fit$coefficients
+# coefs2 <- fit2$coefficients
+# 
+# #plot(fit) 
+# # Plot 
+# png("figures/fig_high-leverage-point.png", width=8, height=6, units="in", pointsize=12, res=300)
+# plot(tdf$prop ~ tdf$abd, xlim=c(-100, 300), ylim=c(0,1), col="red", xlab="aggregate abundance (unscaled)", ylab="proportion CU>Sgen")
+# points(tdf2$prop~tdf2$abd, col="black")
+# curve(inv_logit(coefs[1] + coefs[2] * x ), add=TRUE, col="red")
+# curve(inv_logit(coefs2[1] + coefs2[2] * x ), add=TRUE)
+# legend(x=100, y=0.4, lty=1, col=c("red", "black"), legend=c("With influential point", "Without"))
+# dev.off()
+
+#### Compare logit to cauchit fits (keep influential point)
+fit_l <- glm(prop ~ abd, data=tdf, family=quasibinomial(link="logit"))
+fit_l2 <- glm(prop ~ abd, data=tdf2, family=quasibinomial(link="logit")) # logit link without influential point
+fit_c <- glm(prop ~ abd, data=tdf, family=quasibinomial(link="cauchit"))
+fit_c2 <- glm(prop ~ abd, data=tdf2, family=quasibinomial(link="cauchit")) # cauchit link without influential point
+#fit_p <- glm(prop ~ abd, data=tdf, family=quasibinomial(link="probit"))
+#fit_p2 <- glm(prop ~ abd, data=tdf2, family=quasibinomial(link="probit"))
+
+coefs_l <- fit_l$coefficients
+coefs_l2 <- fit_l2$coefficients
+coefs_c <- fit_c$coefficients
+coefs_c2 <- fit_c2$coefficients
+#coefs_p <- fit_p$coefficients
+#coefs_p2 <- fit_p2$coefficients
+
+png("figures/fig_logit_vs_cauchit.png", width=8, height=6, units="in", pointsize=12, res=300)
+plot(tdf$prop ~ tdf$abd, xlim=c(-100, 300), ylim=c(0,1), xlab="aggregate abundance (scaled)", ylab="proportion CU>Sgen", 
+     main="Generic glm() results")
+points(tdf$prop[50] ~ tdf$abd[50], xlim=c(-100, 300), ylim=c(0,1), col="red")
+curve(inv_logit(coefs_l[1] + coefs_l[2] * x ), add=TRUE)
+curve(inv_logit(coefs_l2[1] + coefs_l2[2] * x ), add=TRUE, col="gray")
+curve(VGAM::cauchitlink(coefs_c[1] + coefs_c[2] * x , inverse=TRUE), add=TRUE, col="purple") # inverse cauchit link from VGAM package
+curve(VGAM::cauchitlink(coefs_c2[1] + coefs_c2[2] * x , inverse=TRUE), add=TRUE, col="pink") # inverse cauchit link from VGAM package
+#curve(VGAM::probitlink(coefs_p[1] + coefs_p[2] * x, inverse=TRUE), add=TRUE, col="orange") # inverse probit link from VGAM package
+#curve(VGAM::probitlink(coefs_p2[1] + coefs_p2[2] * x, inverse=TRUE), add=TRUE, col="orange3") # inverse probit link from VGAM package
+legend(x=100, y=0.4, lty=1, col=c("black", "gray", "purple", "pink"), legend=c("logit", "logit (no influential point)", "cauchit", "cauchit (no influential point)"))
 dev.off()
 
 # -------------------------------------------#
