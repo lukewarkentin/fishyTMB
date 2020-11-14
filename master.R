@@ -138,7 +138,6 @@ mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter
 #mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
 mres
 
-
 # get predictions 
 preds <- inv_logit(mres$Estimate[mres$param=="logit_preds"])
 preds_up <- inv_logit(mres$Estimate[mres$param=="logit_preds"] + mres$Std..Error[mres$param=="logit_preds"])
@@ -236,7 +235,7 @@ dev.off()
 # Save plots
 # -------------------------------------------#
 
-# Plot results of models, comparing ricker curves
+# Plot results of models, comparing ricker curves # need to unscale parameter outputs for this to work
 plot_compare_mods(mod1 = models[2], mod2= models[3])
 plot_compare_mods(mod1 = models[2], mod2= "Aggregate_LRPs_2phase")
 plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_2phase")
@@ -257,6 +256,47 @@ ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) +
   geom_point(size=4,aes(colour=year)) + 
   geom_text(aes(label=year)) + 
   theme_classic()
+
+# plot spread in spawner abundances
+# compare to Coho data
+options(scipen=1000000)
+
+coho_dat <- read.csv("https://raw.githubusercontent.com/Pacific-salmon-assess/SalmonLRP_RetroEval/master/IFCohoStudy/DataIn/IFCoho_SRbyCU.csv") # read in coho data from local repository
+# rename columns to match chum data
+names(coho_dat)[grep("CU_Name", names(coho_dat))] <- "CU"
+names(coho_dat)[grep("Spawners", names(coho_dat))] <- "spawners"
+names(coho_dat)[grep("Recruits", names(coho_dat))] <- "recruits"
+names(coho_dat)[grep("BroodYear", names(coho_dat))] <- "year"
+# select data needed
+coho_dat <- coho_dat[,c(1,3,4,5)]
+coho_dat$sp <- "coho" # add species column
+dat$sp <- "chum"
+all_dat <- rbind(dat, coho_dat) # bind rows
+# plot comparison of distributions
+png(filename="figures/fig_compare_chum_coho_spawner_dist.png", width=8, height=6,units="in", res=300)
+ggplot(all_dat, aes(x=spawners, colour=CU, fill=CU)) +
+  geom_point(aes(y=0, x=spawners), shape=108, colour="black", size=2) +
+  geom_density(alpha=0.5) + 
+  scale_x_log10( breaks= c(10^(1:10))) +
+  facet_wrap(~sp, ncol=1) +
+  xlab("log10 spawners") +
+  ylab("Density") +
+  theme_classic()
+dev.off()
+
+# compare correlation among CUs
+# convert long to wide data for correlations
+coho_dat_w <- coho_dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
+chum_dat_w <- dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
+# Plot correlation of spawner abundances
+png(filename="figures/fig_cor_spawners_coho.png", width=6, height=6, units="in", res=300)
+PerformanceAnalytics::chart.Correlation(coho_dat_w[,-1])
+dev.off()
+
+png(filename="figures/fig_cor_spawners_chum.png", width=6, height=6, units="in", res=300)
+PerformanceAnalytics::chart.Correlation(chum_dat_w[,-1])
+dev.off()
+
 
 # -------------------------------------------#
 # Save model output (to compare with Holt et al. 2018)

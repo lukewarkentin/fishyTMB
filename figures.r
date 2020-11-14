@@ -15,7 +15,7 @@ plot_compare_mods <- function(mod1, mod2) {
   res2 <- mod_out[[mod2]] # get data frame of results for model 2
   for (i in 1:length(CUs)) {
     # get model 1 parameters
-    mod1alpha <- exp(res1$Estimate[res1$param=="logA"][i])
+    mod1alpha <- exp(res1$Estimate[res1$param=="logA"][i]) # currently doesn't work, need to unscale parameter outputs
     mod1beta <-      res1$Estimate[res1$param=="B"][i] 
     # get model 2 parameters
     mod2alpha <- exp(res2$Estimate[res2$param=="logA"][i])
