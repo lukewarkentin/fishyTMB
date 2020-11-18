@@ -137,7 +137,10 @@ upper<-unlist(obj$par)
  # agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range * scale
  # 
 
-# get predictions ---------
+
+# ------------------------#
+# Get predictions for logistic model
+# ------------------------#
 preds <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
 preds_up <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"] + mod_out$Aggregate_LRPs_2phase$Std..Error[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
 preds_low <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"] - mod_out$Aggregate_LRPs_2phase$Std..Error[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
