@@ -46,6 +46,9 @@ TMB/*.o # created when .cpp TMB models compiled
 #Word documents
 *.docx
 
+# Excel documents
+*.xlsx
+
 # Miscellaneous files
 # explore available hydrometric and weather data
 weather_hydrometric.r  

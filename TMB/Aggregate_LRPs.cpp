@@ -27,6 +27,7 @@ Type objective_function<Type>::operator() () {
   vector <Type> SMSY(n_stocks);  // stock-specific SMSY values
   vector <Type> logSMSY(n_stocks); // stock-specific log(SMSY) values
   vector <Type> Sgen = exp(logSgen); 
+  vector <Type> A = exp(logA); // alpha
   
   Type ans=0.0; // initialize log-likelihood at 0.0
   
@@ -85,6 +86,7 @@ Type objective_function<Type>::operator() () {
   logit_preds = B_0 + B_1*spawners_range;
   
   ADREPORT(B);
+  ADREPORT(A);
   ADREPORT(SMSY);
   ADREPORT(Sgen);
   REPORT(N_Above_LRP);

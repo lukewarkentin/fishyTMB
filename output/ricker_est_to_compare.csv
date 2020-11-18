@@ -1,22 +1,22 @@
-"","CU","name","value"
-"1","1 - Southern Coastal Streams","alpha",1.51393203053225
-"2","1 - Southern Coastal Streams","Sgen",9709.3318677623
-"3","1 - Southern Coastal Streams","SMSY_80",10121.4150031931
-"4","2 - North East Vancouver Island","alpha",1.66476744254944
-"5","2 - North East Vancouver Island","Sgen",16099.7786707914
-"6","2 - North East Vancouver Island","SMSY_80",18124.2952542679
-"7","3 - Upper Knight","alpha",2.51343377778736
-"8","3 - Upper Knight","Sgen",2547.60146611663
-"9","3 - Upper Knight","SMSY_80",4219.41169461793
-"10","4 - Loughborough","alpha",2.41685026323791
-"11","4 - Loughborough","Sgen",11141.7594350466
-"12","4 - Loughborough","SMSY_80",17740.9772220189
-"13","5 - Bute Inlet","alpha",2.64711186103831
-"14","5 - Bute Inlet","Sgen",18061.5688149408
-"15","5 - Bute Inlet","SMSY_80",31543.557447622
-"16","6 - Georgia Strait","alpha",3.54900381815868
-"17","6 - Georgia Strait","Sgen",70745.9749350702
-"18","6 - Georgia Strait","SMSY_80",168640.653709438
-"19","7 - Howe Sound-Burrard Inlet","alpha",2.85917929743724
-"20","7 - Howe Sound-Burrard Inlet","Sgen",81255.1460422081
-"21","7 - Howe Sound-Burrard Inlet","SMSY_80",153801.671167769
+"","CU_name","name","value"
+"1","1 - Southern Coastal Streams","A",1.51394294749431
+"2","1 - Southern Coastal Streams","Sgen",9708.22601447052
+"3","1 - Southern Coastal Streams","SMSY_80",10121.4999024503
+"4","2 - North East Vancouver Island","A",1.66477917868825
+"5","2 - North East Vancouver Island","Sgen",16101.3999590024
+"6","2 - North East Vancouver Island","SMSY_80",18124.5309003091
+"7","3 - Upper Knight","A",2.51350760261737
+"8","3 - Upper Knight","Sgen",2547.30754143112
+"9","3 - Upper Knight","SMSY_80",4219.47256306506
+"10","4 - Loughborough","A",2.41683705456737
+"11","4 - Loughborough","Sgen",11143.8454116003
+"12","4 - Loughborough","SMSY_80",17740.8879132291
+"13","5 - Bute Inlet","A",2.64709295810296
+"14","5 - Bute Inlet","Sgen",18058.0395637429
+"15","5 - Bute Inlet","SMSY_80",31543.4904490596
+"16","6 - Georgia Strait","A",3.54897469252056
+"17","6 - Georgia Strait","Sgen",70747.9504685561
+"18","6 - Georgia Strait","SMSY_80",168641.21312585
+"19","7 - Howe Sound-Burrard Inlet","A",2.85919201430578
+"20","7 - Howe Sound-Burrard Inlet","Sgen",81257.7892744716
+"21","7 - Howe Sound-Burrard Inlet","SMSY_80",153802.053017152

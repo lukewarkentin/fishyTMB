@@ -16,7 +16,7 @@ Type objective_function<Type>::operator() (){
   vector<Type> logR_Pred(n); // declare predicted logR to use in likelihood function
   Type sigma = exp(logSigma); 
   Type B = exp(logB);
-  
+  Type A = exp(logA);
   Type ans = 0.0; // initialize negative log likelihood
   
   // Ricker likelihood
@@ -26,6 +26,7 @@ Type objective_function<Type>::operator() (){
   }
   
   ADREPORT(B);
+  ADREPORT(A);
   ADREPORT(logA);
   ADREPORT(sigma);
   

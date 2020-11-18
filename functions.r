@@ -161,11 +161,19 @@ run_model <- function(model_name, phases, CU_names) {
     mres$param <- sub("\\.\\d*", "", mres$param ) # remove .1, .2 etc from parameter names. \\. is "." and \\d means any digit
     mres$mod <- model_name # this would be to add a column of model names. Would work if in a function
     mres$phases <- phases # number of phases
-    mres$CU_ID[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- seq_along(CU_names)  # add a CU_ID column
-    # This section messes up order of predicted variables
-    mres <- merge(mres, data.frame(CU_name = CU_names, CU_ID= seq_along(CU_names)), by="CU_ID", all.x=TRUE) # merge CU names
-    mres <- mres[order(mres$param),] # order based on parameter
-    # re-scale parameter estimates
+    if(!model_name=="ricker_basic") {
+    mres$CU_name[!(mres$param %in% c("Agg_BM", "B_0", "B_1", "logit_preds"))] <- CU_names  # add a CU_name column. Reuses vector of CU names
+    
+    # unscale parameter estimates
+    
+    params_unscale <- c("Agg_BM", "Sgen", "SMSY") # parameters to unscale
+    mres[mres$param %in% params_unscale, ] <- mres %>% filter(param %in% params_unscale) %>% 
+      mutate(Estimate = Estimate * scale) %>% mutate(Std..Error=Std..Error*scale)
+    
+    }
+    
+    mres[mres$param %in% "B", ] <- mres %>% filter(param %in% "B") %>% # divide B by scale FLAG is this correct? 
+      mutate(Estimate = Estimate / scale) %>% mutate(Std..Error = Std..Error / scale)
     mres
     
 } # end of function

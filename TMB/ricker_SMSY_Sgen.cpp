@@ -18,6 +18,7 @@ Type objective_function<Type>::operator() () {
   vector<Type> logR_Pred(n); // declare predicted logR to use in likelihood function, of length n
   vector<Type> sigma = exp(logSigma); // don't have to declare length of local variables if they are derived from parameter inputs
   vector<Type> B = exp(logB);  // don't have to declare length of local variables if they are derived from parameter inputs
+  vector<Type> A = exp(logA); 
   vector<Type> SMSY(n_stocks);  
   vector<Type> logSMSY(n_stocks); 
   vector<Type> Sgen = exp(logSgen);
@@ -41,6 +42,7 @@ Type objective_function<Type>::operator() () {
   ADREPORT(SMSY);
   ADREPORT(Sgen);
   ADREPORT(B);
+  ADREPORT(A);
   ADREPORT(logA);
   ADREPORT(sigma);
 
