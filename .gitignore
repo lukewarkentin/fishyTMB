@@ -50,8 +50,8 @@ TMB/*.o # created when .cpp TMB models compiled
 *.xlsx
 
 # obsolete files folder
-obs/
-obs/*
+obsolete/
+obsolete/*
 
 # Miscellaneous files
 # explore available hydrometric and weather data
