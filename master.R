@@ -300,3 +300,21 @@ resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
 
 res_sum <- resdfw %>% select(CU_name, A, Sgen, SMSY_80) %>% pivot_longer(cols=c(A, Sgen, SMSY_80)) # make summary table with same layout as report 
 #write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
+
+# Look at different distributions
+all_dat_y <- all_dat %>% group_by(year, sp) %>% summarise(agg_abd = sum(spawners))
+hist(all_dat_y[all_dat_y$sp=="coho",]$agg_abd, breaks=10)
+
+x<- seq(0, max(all_dat_y[all_dat_y$sp=="chum",]$agg_abd*1.1), 100)
+yc <- dcauchy(x, location=mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), scale=100000)
+yn <- dnorm(x, mean=mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), sd=100000)
+yl <- dlogis(x, location= mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), scale=100000)
+png("figures/fig_compare_distributions.png", width=6, height=5, units="in", res=300)
+plot(x=x, y=yc, type="l", col="dodgerblue", xlim=c(0, max(all_dat_y[all_dat_y$sp=="chum",]$agg_abd)*1.05), 
+     xlab="Aggregage spawner abundance", ylab="density", lwd=2)
+hist(all_dat_y[all_dat_y$sp=="chum",]$agg_abd, freq=FALSE, breaks=10, add=TRUE, col=NULL)
+lines(x=x, y=yn, type="l", col="purple", lwd=2)
+lines(x=x, y=yl, type="l", col="orange", lwd=2)
+legend(x=1500000, y=0.000002, col=c("dodgerblue", "purple", "orange"), legend=c("Cauchy", "Normal", "Logistic"),lwd=2, lty=1)
+dev.off()
+
