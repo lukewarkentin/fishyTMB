@@ -9,6 +9,7 @@ setwd("C:/github/fishyTMB") # temporary, set working directory
 # read in required libraries
 library(TMB)
 library(ggplot2)
+options(scipen=1000000)
 library(dplyr)
 library(tidyr)
 
@@ -235,7 +236,7 @@ plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_3phase")
 
 
 # Plot recruits/spawner over time
-ggplot(dat, aes(y=recruits/spawners, x=year, colour=CU)) + 
+ggplot(dat, aes(y=recruits/spawners, x=year)) + 
   geom_line() + 
   geom_point() +
   scale_y_log10() +
@@ -243,6 +244,19 @@ ggplot(dat, aes(y=recruits/spawners, x=year, colour=CU)) +
   facet_wrap(~CU, scales="free_y")  
   #theme_classic()
 
+# plots spawners over time 
+ggplot(dat, aes(y=spawners, x=year)) + 
+  geom_line() + 
+  geom_point() +
+  facet_wrap(~CU, scales="free_y") +
+  theme_classic()
+
+# ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) + 
+#   geom_point(size=4,aes(colour=year)) + 
+#   geom_text(aes(label=year)) + 
+#   theme_classic()
+
+# plot stock rectruit curves for 
 ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) + 
   geom_point(size=4,aes(colour=year)) + 
   geom_text(aes(label=year)) + 
@@ -250,7 +264,6 @@ ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) +
 
 # plot spread in spawner abundances
 # compare to Coho data
-options(scipen=1000000)
 
 coho_dat <- read.csv("https://raw.githubusercontent.com/Pacific-salmon-assess/SalmonLRP_RetroEval/master/IFCohoStudy/DataIn/IFCoho_SRbyCU.csv") # read in coho data from local repository
 # rename columns to match chum data
@@ -263,6 +276,7 @@ coho_dat <- coho_dat[,c(1,3,4,5)]
 coho_dat$sp <- "coho" # add species column
 dat$sp <- "chum"
 all_dat <- rbind(dat, coho_dat) # bind rows
+all_dat$RS <- all_dat$recruits / all_dat$spawner
 # plot comparison of distributions
 png(filename="figures/fig_compare_chum_coho_spawner_dist.png", width=8, height=6,units="in", res=300)
 ggplot(all_dat, aes(x=spawners, colour=CU, fill=CU)) +
@@ -279,6 +293,7 @@ dev.off()
 # convert long to wide data for correlations
 coho_dat_w <- coho_dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
 chum_dat_w <- dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
+
 # Plot correlation of spawner abundances
 png(filename="figures/fig_cor_spawners_coho.png", width=6, height=6, units="in", res=300)
 PerformanceAnalytics::chart.Correlation(coho_dat_w[,-1])
@@ -288,6 +303,23 @@ png(filename="figures/fig_cor_spawners_chum.png", width=6, height=6, units="in",
 PerformanceAnalytics::chart.Correlation(chum_dat_w[,-1])
 dev.off()
 
+# get correlations of recruits/spawner
+coho_dat$RS <- coho_dat$recruits/coho_dat$spawners
+coho_dat_RS_w <- coho_dat %>% select(CU, RS, year) %>% pivot_wider(names_from=CU, values_from=RS )
+dat$RS <- dat$recruits/dat$spawners 
+chum_dat_RS_w <- dat %>% select(CU, RS, year) %>% pivot_wider(names_from=CU, values_from=RS )
+# Plot correlation of recruits/spawner
+PerformanceAnalytics::chart.Correlation(coho_dat_RS_w[,-1])
+PerformanceAnalytics::chart.Correlation(chum_dat_RS_w[,-1])
+# Plot distributions of recruits/spawner
+ggplot(all_dat, aes(x=RS, colour=CU, fill=CU)) +
+  geom_point(aes(y=0, x=RS), shape=108, colour="black", size=2) +
+  geom_density(alpha=0.5) + 
+  scale_x_log10( ) +
+  facet_wrap(~sp, ncol=1) +
+  xlab("Recruits per spawner") +
+  ylab("Density") +
+  theme_classic()
 
 # -------------------------------------------#
 # Save model output (to compare with Holt et al. 2018)
