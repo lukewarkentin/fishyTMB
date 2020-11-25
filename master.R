@@ -1,4 +1,4 @@
-# Master file to run stock recruit analysis
+# Master file to run stock recruit analysis 
 
 # -------------------------------------------#
 # Load packages, data, and functions
@@ -12,6 +12,7 @@ library(ggplot2)
 options(scipen=1000000)
 library(dplyr)
 library(tidyr)
+library(corrplot)
 
 # source functions and figure functions
 source("functions.r")
@@ -47,7 +48,7 @@ model_input_list <- lapply(X=models, make_model_input, SRdat = dat, scale=scale)
 names(model_input_list) <- models # name elements of list after model names
 
 # -------------------------------------------#
-# Run TMB models
+# Run TMB models with automated function
 # -------------------------------------------#
 mod_out <- lapply(X=models, FUN=run_model, phases=1, CU_names = unique(dat$CU)) # make a list of model outputs, run models
 names(mod_out) <- models
@@ -55,11 +56,15 @@ mod_out # Aggregate_LRPs model has NaN for all Std. Errors. Did not coverge
 
 # Run 2 and 3 phase models, append to model results list
 mod_out$Aggregate_LRPs_2phase <- run_model(model_name = "Aggregate_LRPs", phases=2, CU_names=unique(dat$CU))
+mod_out$Aggregate_LRPs_2phase <- run_model(model_name = "Aggregate_LRPs", phases=2, CU_names=unique(dat$CU))
+
 mod_out$Aggregate_LRPs_3phase <- run_model(model_name = "Aggregate_LRPs", phases=3, CU_names=unique(dat$CU))
 mod_out
 # 3 phase model gives convergence for B_0, B_1, or Agg_BM if data is scaled.
 
+# ----------------#
 # Run 3 phase Aggregate LRP model with bounds on Sgen, and controls on optimization ---------
+# ----------------#
 
 # Phase 1:
 map = list(logSgen=factor(rep(NA, 7)),B_0 = factor(NA), B_1 = factor(NA)) # fix logSgen and logistic parameters
@@ -85,15 +90,15 @@ param1 <- obj$env$parList(opt$par) # get parameter estimates after phase 1 estim
                   DLL="Aggregate_LRPs", map=map)
 
  ## Create upper & lower bounds vectors that are same length and order as nlminb start vector
-upper<-unlist(obj$par)
- upper[1:length(upper)]<-Inf
- upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than SMSY
- upper<-unname(upper)
-
- lower<-unlist(obj$par)
- lower[1:length(lower)]<--Inf
- lower[names(lower) =="logSgen"] <- log(0.001) # constrain Sgen to be positive
- lower<-unname(lower)
+# upper<-unlist(obj$par)
+#  upper[1:length(upper)]<-Inf
+#  upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than SMSY
+#  upper<-unname(upper)
+# 
+#  lower<-unlist(obj$par)
+#  lower[1:length(lower)]<--Inf
+#  lower[names(lower) =="logSgen"] <- log(0.001) # constrain Sgen to be positive
+#  lower<-unname(lower)
 
 
  opt <- nlminb(obj$par, obj$fn, obj$gr,control = list(eval.max = 1e5, iter.max = 1e5),
@@ -110,13 +115,13 @@ upper<-unlist(obj$par)
  ## Create upper & lower bounds vectors that are same length and order as nlminb start vector
  upper<-unlist(obj$par)
  upper[1:length(upper)]<-Inf
- upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than Smsy
- #upper[names(upper) =="B_0"] <- -2.3 # constrain B_0 to be less than -2.3
+ #upper[names(upper) =="logSgen"] <- log(SMSYs) # constrain Sgen to be less than Smsy
+ upper[names(upper) =="B_0"] <- -2.3 # constrain B_0 to be less than -2.3
  upper<-unname(upper)
 
  lower<-unlist(obj$par)
  lower[1:length(lower)]<- -Inf
- lower[names(lower) =="logSgen"] <- log(0.001) # constrain Sgen to be positive
+ #lower[names(lower) =="logSgen"] <- log(0.001) # constrain Sgen to be positive
  lower<-unname(lower)
 
  opt <- nlminb(obj$par, obj$fn, obj$gr, control = list(eval.max = 1e5, iter.max = 1e5),
@@ -138,56 +143,66 @@ upper<-unlist(obj$par)
  # agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range * scale
  # 
 
-
+#-------------
 # ------------------------#
 # Get predictions for logistic model
 # ------------------------#
-preds <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
-preds_up <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"] + mod_out$Aggregate_LRPs_2phase$Std..Error[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
-preds_low <- inv_logit(mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"] - mod_out$Aggregate_LRPs_2phase$Std..Error[mod_out$Aggregate_LRPs_2phase$param=="logit_preds"])
+# From unconstrained B_0
+preds <- inv_logit(mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="logit_preds"])
+preds_up <- inv_logit(mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="logit_preds"] + mod_out$Aggregate_LRPs_3phase$Std..Error[mod_out$Aggregate_LRPs_3phase$param=="logit_preds"])
+preds_low <- inv_logit(mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="logit_preds"] - mod_out$Aggregate_LRPs_3phase$Std..Error[mod_out$Aggregate_LRPs_3phase$param=="logit_preds"])
+
+
+# From B_0 constrained 
+preds_c <- inv_logit(mres$Estimate[mres$param=="logit_preds"])
+preds_c_up <- inv_logit(mres$Estimate[mres$param=="logit_preds"] + mres$Std..Error[mres$param=="logit_preds"])
+preds_c_low <- inv_logit(mres$Estimate[mres$param=="logit_preds"] - mres$Std..Error[mres$param=="logit_preds"])
+
 # get the values to predict over
 agg_abund <- model_input_list[["Aggregate_LRPs"]]$data_in$spawners_range * scale
 
 # ----------------------#
 # Plot logistic regression with benchmark
 # ----------------------#
-#png("figures/fig_check_logistic.png", width=8, height=6, units="in", pointsize=12, res=300)
+png("figures/fig_check_logistic_base.png", width=8, height=6, units="in", pointsize=12, res=300)
 # plot predicted values
-plot( preds ~ agg_abund, type="l", ylim=c(0,1), lwd=2, col="dodgerblue", 
-      xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen", 
-      main="TMB model results, unconstrained B_0 (3 phase)")
+plot( preds ~ agg_abund, type="l", ylim=c(0,1), xlim=c(0, max(agg_abund)*1.01), lwd=2, col="dodgerblue", 
+      xlab="Aggregate spawner abundance", ylab="proportion CUs > Sgen")
 # plot std error 
 polygon(x=c(agg_abund, rev(agg_abund)), y= c(preds_up, rev(preds_low)), col=adjustcolor("dodgerblue", alpha=0.5), border=NA)
+# Plot predictions from constrained B_0 model
+lines(y=preds_c, x=agg_abund, col="gray")
+polygon(x=c(agg_abund, rev(agg_abund)), y= c(preds_c_up, rev(preds_c_low)), col=adjustcolor("gray", alpha=0.5), border=NA)
+# plot benchmarks
+#abline(v=mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="Agg_BM"], col="dodgerblue", lty=2)
+#abline(v=mres$Estimate[mres$param=="Agg_BM"]*scale, col="gray", lty=2)
 
-# plot benchmark
-abline(v=mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs_2phase$param=="Agg_BM"], col="gray", lty=2)
 # # Get binomial regression parameters from above manual 3 phase with controls, etc.
 # # plot observed data
 points(y = obj$report()$N_Above_LRP/7, x= obj$report()$Agg_Abund*scale) # from manual 3 phase model fitting above
+
+legend(x=1200000, y=0.4, col=c("dodgerblue", "gray"), lty=1, legend=c("Normal", "B_0 constrained < -2.3"))
+
+# Plot model based on B_0 and B_1 estimates
 # B_0 <- mres$Estimate[mres$param=="B_0"]
 # B_1 <- mres$Estimate[mres$param=="B_1"]
 # plot binomial model estimate
 # curve( inv_logit(B_0 + B_1*x/scale), col="red", lty=3 , lwd=2, add=TRUE)
 
 # Get binomial regression parameters from other model outputs and plot
-B_0 <- mod_out$Aggregate_LRPs$Estimate[mod_out$Aggregate_LRPs$param=="B_0"]
-B_1 <- mod_out$Aggregate_LRPs$Estimate[mod_out$Aggregate_LRPs$param=="B_1"]
-curve( inv_logit(B_0 + B_1*x/scale), col="orange", lty=3 , lwd=2, add=TRUE) # the one phase model results are different than the others. Does not fit data well
-B_0 <- mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs$param=="B_0"]
-B_1 <- mod_out$Aggregate_LRPs_2phase$Estimate[mod_out$Aggregate_LRPs$param=="B_1"]
-curve( inv_logit(B_0 + B_1*x/scale), col="pink", lty=3 , lwd=2, add=TRUE) # 2 phase model gives same results
-B_0 <- mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs$param=="B_0"]
-B_1 <- mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs$param=="B_1"]
-curve( inv_logit(B_0 + B_1*x/scale), col="brown", lty=3 , lwd=2, add=TRUE) # 3 phase model gives same results 
+# B_0 <- mod_out$Aggregate_LRPs$Estimate[mod_out$Aggregate_LRPs$param=="B_0"]
+# B_1 <- mod_out$Aggregate_LRPs$Estimate[mod_out$Aggregate_LRPs$param=="B_1"]
+# curve( inv_logit(B_0 + B_1*x/scale), col="orange", lty=3 , lwd=2, add=TRUE) # the one phase model results are different than the others. Does not fit data well
+# B_0 <- mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="B_0"]
+# B_1 <- mod_out$Aggregate_LRPs_3phase$Estimate[mod_out$Aggregate_LRPs_3phase$param=="B_1"]
+# curve( inv_logit(B_0 + B_1*x/scale), col="brown", lty=3 , lwd=2, add=TRUE) # 3 phase model gives same results 
 
-#legend(x=1000000, y=0.2, legend=c("Predicted", "Formula", "benchmark, p=0.8"), lty=c(1,2,2), lwd=c(2,3,1),col=c("dodgerblue", "red", "gray"), )
-#dev.off()
+dev.off()
 
 # --------------------------------#
-# Use glm function to compare different models
+# Compare logistic fits with logit and cauchy link functions
+# and with/without outlier, with generic glm function 
 # --------------------------------#
-
-#### Compare with and without influential point, logit vs. cauchit link functions
 
 # make a data frame of just aggregate abundance and prop over Sgen
 tdf <- data.frame(prop = obj$report()$N_Above_LRP/7 , abd = obj$report()$Agg_Abund) 
@@ -227,44 +242,13 @@ dev.off()
 # Save plots
 # -------------------------------------------#
 
-# Plot results of models, comparing ricker curves # need to unscale parameter outputs for this to work
-plot_compare_mods(mod1 = models[2], mod2= models[3])
-plot_compare_mods(mod1 = models[2], mod2= "Aggregate_LRPs_2phase")
-plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_2phase")
-plot_compare_mods(mod1 = models[2], mod2= "Aggregate_LRPs_3phase")
-plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_3phase")
+# Plot results of TMB stock-recruit models, optional: compare ricker curves 
+plot_ricker_mods(mod1 = "Aggregate_LRPs_3phase")
+# Compare Ricker fits between two models
+# plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_3phase")
 
-
-# Plot recruits/spawner over time
-ggplot(dat, aes(y=recruits/spawners, x=year)) + 
-  geom_line() + 
-  geom_point() +
-  scale_y_log10() +
-  geom_hline(aes(yintercept=1)) +
-  facet_wrap(~CU, scales="free_y")  
-  #theme_classic()
-
-# plots spawners over time 
-ggplot(dat, aes(y=spawners, x=year)) + 
-  geom_line() + 
-  geom_point() +
-  facet_wrap(~CU, scales="free_y") +
-  theme_classic()
-
-# ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) + 
-#   geom_point(size=4,aes(colour=year)) + 
-#   geom_text(aes(label=year)) + 
-#   theme_classic()
-
-# plot stock rectruit curves for 
-ggplot(dat[dat$CU=="3 - Upper Knight", ], aes(y=recruits, x=spawners)) + 
-  geom_point(size=4,aes(colour=year)) + 
-  geom_text(aes(label=year)) + 
-  theme_classic()
-
-# plot spread in spawner abundances
-# compare to Coho data
-
+# Plot spread in spawner abundances, chum vs. coho
+# read in coho data
 coho_dat <- read.csv("https://raw.githubusercontent.com/Pacific-salmon-assess/SalmonLRP_RetroEval/master/IFCohoStudy/DataIn/IFCoho_SRbyCU.csv") # read in coho data from local repository
 # rename columns to match chum data
 names(coho_dat)[grep("CU_Name", names(coho_dat))] <- "CU"
@@ -284,25 +268,30 @@ ggplot(all_dat, aes(x=spawners, colour=CU, fill=CU)) +
   geom_density(alpha=0.5) + 
   scale_x_log10( breaks= c(10^(1:10))) +
   facet_wrap(~sp, ncol=1) +
-  xlab("log10 spawners") +
+  xlab(bquote("log"[10]~"(spawners)")) +
   ylab("Density") +
   theme_classic()
 dev.off()
 
-# compare correlation among CUs
+# Compare correlation among CUs
 # convert long to wide data for correlations
 coho_dat_w <- coho_dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
 chum_dat_w <- dat %>% select(CU, spawners, year) %>% pivot_wider(names_from=CU, values_from=spawners)
 
 # Plot correlation of spawner abundances
 png(filename="figures/fig_cor_spawners_coho.png", width=6, height=6, units="in", res=300)
-PerformanceAnalytics::chart.Correlation(coho_dat_w[,-1])
+corrplot(cor(coho_dat_w[,-1]), tl.col = "black", bg = "White",
+         addCoef.col = "black", type = "upper", tl.pos="td", tl.srt=45, diag=FALSE)
+#PerformanceAnalytics::chart.Correlation(coho_dat_w[,-1])
 dev.off()
 
-png(filename="figures/fig_cor_spawners_chum.png", width=6, height=6, units="in", res=300)
-PerformanceAnalytics::chart.Correlation(chum_dat_w[,-1])
+png(filename="figures/fig_cor_spawners_chum.png", width=10, height=10, units="in", res=300)
+corrplot(cor(chum_dat_w[,-1]), tl.col = "black", bg = "White",
+         addCoef.col = "black", type = "upper", tl.pos="td", tl.srt=45, diag=FALSE)
+#PerformanceAnalytics::chart.Correlation(chum_dat_w[,-1])
 dev.off()
 
+# Plot correlations between recruits/spawner
 # get correlations of recruits/spawner
 coho_dat$RS <- coho_dat$recruits/coho_dat$spawners
 coho_dat_RS_w <- coho_dat %>% select(CU, RS, year) %>% pivot_wider(names_from=CU, values_from=RS )
@@ -311,15 +300,6 @@ chum_dat_RS_w <- dat %>% select(CU, RS, year) %>% pivot_wider(names_from=CU, val
 # Plot correlation of recruits/spawner
 PerformanceAnalytics::chart.Correlation(coho_dat_RS_w[,-1])
 PerformanceAnalytics::chart.Correlation(chum_dat_RS_w[,-1])
-# Plot distributions of recruits/spawner
-ggplot(all_dat, aes(x=RS, colour=CU, fill=CU)) +
-  geom_point(aes(y=0, x=RS), shape=108, colour="black", size=2) +
-  geom_density(alpha=0.5) + 
-  scale_x_log10( ) +
-  facet_wrap(~sp, ncol=1) +
-  xlab("Recruits per spawner") +
-  ylab("Density") +
-  theme_classic()
 
 # -------------------------------------------#
 # Save model output (to compare with Holt et al. 2018)
@@ -332,21 +312,3 @@ resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
 
 res_sum <- resdfw %>% select(CU_name, A, Sgen, SMSY_80) %>% pivot_longer(cols=c(A, Sgen, SMSY_80)) # make summary table with same layout as report 
 #write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
-
-# Look at different distributions
-all_dat_y <- all_dat %>% group_by(year, sp) %>% summarise(agg_abd = sum(spawners))
-hist(all_dat_y[all_dat_y$sp=="coho",]$agg_abd, breaks=10)
-
-x<- seq(0, max(all_dat_y[all_dat_y$sp=="chum",]$agg_abd*1.1), 100)
-yc <- dcauchy(x, location=mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), scale=100000)
-yn <- dnorm(x, mean=mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), sd=100000)
-yl <- dlogis(x, location= mean(all_dat_y[all_dat_y$sp=="chum",]$agg_abd), scale=100000)
-png("figures/fig_compare_distributions.png", width=6, height=5, units="in", res=300)
-plot(x=x, y=yc, type="l", col="dodgerblue", xlim=c(0, max(all_dat_y[all_dat_y$sp=="chum",]$agg_abd)*1.05), 
-     xlab="Aggregage spawner abundance", ylab="density", lwd=2)
-hist(all_dat_y[all_dat_y$sp=="chum",]$agg_abd, freq=FALSE, breaks=10, add=TRUE, col=NULL)
-lines(x=x, y=yn, type="l", col="purple", lwd=2)
-lines(x=x, y=yl, type="l", col="orange", lwd=2)
-legend(x=1500000, y=0.000002, col=c("dodgerblue", "purple", "orange"), legend=c("Cauchy", "Normal", "Logistic"),lwd=2, lty=1)
-dev.off()
-
