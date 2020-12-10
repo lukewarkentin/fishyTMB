@@ -247,6 +247,55 @@ plot_ricker_mods(mod1 = "Aggregate_LRPs_3phase")
 # Compare Ricker fits between two models
 # plot_compare_mods(mod1 = models[3], mod2= "Aggregate_LRPs_3phase")
 
+# Plot observed recruits/spawner and estimated alpha
+plot_alpha_RS(mod="Aggregate_LRPs_3phase")
+
+# Plot R/S over time
+png("figures/fig_RS_by_CU.png", width=12, height=8, units="in", res=300)
+ggplot(dat, aes(y=recruits/spawners, x=year)) +
+  geom_point() +
+  geom_path() +
+  #scale_y_log10() + 
+  coord_cartesian(ylim=c(0,10)) +
+  geom_hline(aes(yintercept=1)) +
+  facet_wrap(~CU)
+dev.off()
+
+png("figures/fig_logRS_by_CU.png", width=12, height=8, units="in", res=300)
+ggplot(dat, aes(y=recruits/spawners, x=year)) +
+  geom_point() +
+  geom_path() +
+  scale_y_log10() + 
+  geom_hline(aes(yintercept=1)) +
+  facet_wrap(~CU)
+dev.off()
+
+# Plot R/S over time
+CUs <- unique(dat$CU)
+datg <- dat
+datg$group <-  ifelse(datg$CU %in% CUs[c(6,7)], "Strait of Georgia", 
+                     ifelse(datg$CU %in% CUs[c(1,2,4)], "Johnstone Strait",
+                            "Bute + Knight"))
+
+# Plot R/S over time, by three major geographic groups.
+# Appears that R/S track together for Strait of Georgia, Johnstone Strait. Some agreement
+# between Johnstone strait and Bute/KNight, but also some very different years for those 
+# two inlet CUs.
+ggplot(datg, aes(y=recruits/spawners, x=year, colour= substr(CU, start=5, stop=40))) +
+  geom_point() +
+  geom_path(size=1.5) +
+  scale_y_log10() + 
+  geom_hline(aes(yintercept=1)) +
+  guides(colour="none") +
+  facet_wrap(~group, ncol=1)
+
+# --------------#
+# Look at linear form of ricker equation for CHum
+plot_linear_ricker(mod="Aggregate_LRPs_3phase")
+
+# Plot ricker residuals
+
+
 # Plot spread in spawner abundances, chum vs. coho
 # read in coho data
 coho_dat <- read.csv("https://raw.githubusercontent.com/Pacific-salmon-assess/SalmonLRP_RetroEval/master/IFCohoStudy/DataIn/IFCoho_SRbyCU.csv") # read in coho data from local repository
@@ -301,6 +350,7 @@ chum_dat_RS_w <- dat %>% select(CU, RS, year) %>% pivot_wider(names_from=CU, val
 PerformanceAnalytics::chart.Correlation(coho_dat_RS_w[,-1])
 PerformanceAnalytics::chart.Correlation(chum_dat_RS_w[,-1])
 
+
 # -------------------------------------------#
 # Save model output (to compare with Holt et al. 2018)
 # -------------------------------------------#
@@ -309,6 +359,8 @@ PerformanceAnalytics::chart.Correlation(chum_dat_RS_w[,-1])
 resdf <- mod_out$Aggregate_LRPs_2phase # bind estimates with CU names
 resdfw <- pivot_wider(resdf[!is.na(resdf$CU_name) , -grep("Std..Error", names(resdf))], names_from = param, values_from=Estimate) # long to wide format
 resdfw$SMSY_80 <- 0.8 * resdfw$SMSY # get 80% of SMSY
+#write.csv(resdfw, "output/ricker_est_to_compare_with_beta.csv", row.names=FALSE) # write to csv
+
 
 res_sum <- resdfw %>% select(CU_name, A, Sgen, SMSY_80) %>% pivot_longer(cols=c(A, Sgen, SMSY_80)) # make summary table with same layout as report 
-#write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
+write.csv(res_sum, "output/ricker_est_to_compare.csv") # write to csv
